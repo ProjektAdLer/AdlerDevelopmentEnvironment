@@ -1,7 +1,13 @@
 #!/bin/bash
 WSL_USER=$(awk -F: '($3>=1000)&&($3!=65534){print $1, $3}' /etc/passwd | sort -k2 -n | tail -1 | cut -d' ' -f1)
+WSL_USER=$(whoami)
 MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)
 HOST_IP=$(ip route | grep default | awk '{print $3}')
+
+if [ "$WSL_USER" == "root" ]; then
+    echo "Script cannot be run as root. Exiting."
+    exit 1
+fi
 
 # configuration
 APACHE_VHOST_PORT=5080  # this is the port the moodle is available at

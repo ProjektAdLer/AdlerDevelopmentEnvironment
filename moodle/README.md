@@ -39,7 +39,7 @@ when executing shell scripts. To fix this issue
 ## Install Moodle
 1) Download Moodle to `/home/<wsl username>/moodle` and AdLer Plugins: `./download_moodle.sh` \
    Plugins are cloned as git repositories, as defined in the [plugin-releases.json](https://github.com/ProjektAdLer/moodle-docker/blob/main/plugin-releases.json) so you can start developing on them directly.
-2) Execute the setup Script: `./setup.sh` \
+2) Execute the setup Script: `./setup.sh` as non-root user \
    The [setup.sh bash script](setup.sh) sets up your environment, including installing required packages, setting up the database, and configuring Apache and PHP.
 
 ## Access Moodle
