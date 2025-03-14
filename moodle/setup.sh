@@ -1,5 +1,5 @@
 #!/bin/bash
-WSL_USER=$(awk -F: '($3>=1000)&&($3!=65534){print $1, $3}' /etc/passwd | sort -k2 -n | tail -1 | cut -d' ' -f1)
+# TODO update/test with ubuntu 24.04
 WSL_USER=$(whoami)
 MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)
 HOST_IP=$(ip route | grep default | awk '{print $3}')
@@ -66,6 +66,7 @@ mkdir $MOODLE_PARENT_DIRECTORY/moodledata $MOODLE_PARENT_DIRECTORY/moodledata_ph
 # download moodle to $MOODLE_PARENT_DIRECTORY/moodle
 
 # setup database
+# TODO: healthcheck for db and then --wait
 sudo --preserve-env docker compose up -d
 # Define a timeout of 20 seconds
 TIMEOUT=15
@@ -143,7 +144,10 @@ sudo service apache2 restart
 # install moodle
 php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/install.php --lang=DE --wwwroot=http://localhost:$APACHE_VHOST_PORT --dataroot=$MOODLE_PARENT_DIRECTORY/moodledata --dbtype=mariadb --dbhost=$DB_HOST --dbport=3312 --dbuser=${_DB_MOODLE_USER} --dbpass=${_DB_MOODLE_PW} --dbname=${_DB_MOODLE_NAME} --fullname=fullname --shortname=shortname --adminuser=${_MOODLE_USER} --adminpass=${_MOODLE_PW} --adminemail=admin@blub.blub --supportemail=admin@blub.blub --non-interactive --agree-license
 
-# setup for plugins (but don't download them, they have be present in the moodle folder already)
+# setup for plugins (but don't download them, they have to be present in the moodle folder already)
+# TODO: refactor with/for new playbook approach
+# php local/declarativesetup/cli/run_playbook.php -p=adler -r=moodle_dev_env
+# and role test_users
 git clone https://github.com/ProjektAdLer/moodle-docker /tmp/moodle-docker
 cp -r /tmp/moodle-docker/opt/adler/moodle/adler_setup $MOODLE_PARENT_DIRECTORY/moodle/
 rm -rf /tmp/moodle-docker

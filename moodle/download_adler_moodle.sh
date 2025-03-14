@@ -22,6 +22,7 @@ sudo apt update && sudo apt -y install git jq
 git clone --depth=1 --branch=$MOODLE_RELEASE https://github.com/moodle/moodle.git $MOODLE_PARENT_DIRECTORY/moodle
 cd $MOODLE_PARENT_DIRECTORY/moodle
 
+# todo outdated
 json_content=$(curl https://raw.githubusercontent.com/ProjektAdLer/moodle-docker/main/plugin-releases.json)
 plugin_list=$(echo "$json_content" | jq -r ".common_versions[\"main\"]")
 
