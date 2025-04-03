@@ -1,0 +1,22 @@
+name: adlertestenvironment
+
+services:
+  moodle:
+    environment:
+      DECLARATIVE_SETUP_MANAGER_PASSWORD: ${_USER_MANAGER_PW}
+      DECLARATIVE_SETUP_STUDENT_PASSWORD: ${_USER_STUDENT_PW}
+      ADLER_PLAYBOOK_ROLES: "test_users"
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_HOSTS: db_moodle,db_backend
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${_DB_ROOT_PW}
+    restart: unless-stopped
+    depends_on:
+      # - db_backend
+      - db_moodle
+    ports:
+      - '8088:80'

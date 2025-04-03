@@ -1,12 +1,10 @@
+# Do not change this file. Do local changes only in docker-compose.override.yml
+
 services:
   moodle:
-    build:
-      context: github.com/ProjektAdLer/moodle-docker.git
-      args:
-        PLUGIN_VERSION: 4.0.1
-        MOODLE_VERSION: 4.3
+    image: ghcr.io/projektadler/adler-moodle:6.2.1-moodle-4.5
     ports:
-      - '8085:8080'
+      - '${_PORT_MOODLE}:8080'
     environment:
       MOODLE_DATABASE_HOST: db_moodle
       MOODLE_DATABASE_PORT_NUMBER: 3306
@@ -19,9 +17,6 @@ services:
       BITNAMI_DEBUG: true
       PHP_POST_MAX_SIZE: 2048M
       PHP_UPLOAD_MAX_FILESIZE: 2048M
-      USER_NAME: ${_USER_NAME}
-      USER_PASSWORD: ${_USER_PASSWORD}
-      USER_ROLE: ${_USER_ROLE}
     volumes:
       - moodle_moodle:/bitnami/moodle
       - moodle_moodledata:/bitnami/moodledata
@@ -41,6 +36,11 @@ services:
     volumes:
       - db_moodle_data:/bitnami/mariadb
     restart: unless-stopped
+    healthcheck:
+      test: [ 'CMD', '/opt/bitnami/scripts/mariadb/healthcheck.sh' ]
+      start_period: 10s
+      interval: 15s
+      timeout: 5s
 
   db_backend:
     image: docker.io/bitnami/mariadb:10.11
@@ -54,11 +54,16 @@ services:
     volumes:
       - db_backend_data:/bitnami/mariadb
     restart: unless-stopped
+    healthcheck:
+      test: [ 'CMD', '/opt/bitnami/scripts/mariadb/healthcheck.sh' ]
+      start_period: 10s
+      interval: 15s
+      timeout: 5s
 
   backend:
-    image: ghcr.io/projektadler/adlerbackend:latest
+    image: ghcr.io/projektadler/adlerbackend:2.4.2
     ports:
-      - '8086:80'
+      - '${_PORT_BACKEND}:80'
     environment:
       ASPNETCORE_ENVIRONMENT: 'Production'
       ASPNETCORE_DBUSER: ${_DB_BACKEND_USER}
@@ -72,33 +77,21 @@ services:
     volumes:
       - backend_wwwroot:/app/wwwroot
     depends_on:
-      - db_backend
+      db_backend:
+        condition: service_healthy
+        required: true
     restart: unless-stopped
     extra_hosts:
       - ${_DOMAIN}:host-gateway
 
   frontend:
-    image: ghcr.io/projektadler/2d_3d_adler:latest
+    image: ghcr.io/projektadler/2d_3d_adler:2.8.0
     ports:
-      - '8087:80'
+      - '${_PORT_3D}:80'
     environment:
       API_URL: 'http://${_URL_BACKEND}/api'
       MOODLE_URL: "http://${_URL_MOODLE}"
     restart: unless-stopped
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    environment:
-      PMA_HOSTS: db_moodle,db_backend
-      PMA_PORT: 3306
-      PMA_USER: root
-      PMA_PASSWORD: ${_DB_ROOT_PW}
-    restart: unless-stopped
-    depends_on:
-      # - db_backend
-      - db_moodle
-    ports:
-      - '8088:80'
 
 volumes:
   moodle_moodle:

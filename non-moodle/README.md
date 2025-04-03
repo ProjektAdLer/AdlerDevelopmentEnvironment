@@ -1,49 +1,39 @@
 # Versionen der Projekte auswählen
 
-## Moodle
+Standardmäßig wird die aktuellste Gesamtversion verwendet (der letzte Release des AdLer Stacks).
 
-In der Datei `docker-compose.yaml` unter `services -> moodle -> args -> MOODLE_VERSION`.
+Änderungen sind immer nur in der `docker-compose.override.yaml` Datei durchzuführen. 
+In dieser Datei einfach die zu ändernde Zeile einfügen, bspw.:
+```yaml
+services:
+    frontend:
+        image: ghcr.io/projekt_adler/2d_3d_adler:latest
+```
+Die `docker-compose.yaml` Datei wird automatisch verwaltet.
 
-Die verfügbaren Moodle Versionen können aus den Tags des Bitnami - Moodle Images entnommen werden.
-[Bitnami Moodle Tags](https://hub.docker.com/r/bitnami/moodle/tags)
+## Moodle und Moodle Plugins
 
-Die unterstützen Moodle Versionen sind in der Readme des `local_adler` Plugins dokumentiert.
-[Local Adler Plugin](https://github.com/ProjektAdLer/MoodlePluginLocal)
+In der Datei `docker-compose.override.yaml` unter `services -> moodle -> image`.
 
-Standardmäßig ist Version 4.2 eingestellt.
+Hinter dem Doppelpunkt wird der jeweilige Tag angegeben. Diese können dem Container Registry des Backend Repositories entnommen werden:
 
-## Moodle Plugin
-
-Wird in der Datei `docker-compose.yaml` unter `services -> moodle -> args -> PLUGIN_VERSION` gesetzt.
-
-Standardmäßig wird der aktuelle main-Stand beider Plugins verwendet.
-Dies kann auf eine spezifische Version geändert werden. Siehe:
-
-[Moodle Plugin Local Release](https://github.com/ProjektAdLer/MoodlePluginLocal/releases/tag/1.0.0)
-
-Beispiel: `PLUGIN_VERSION: main, 1.0.0, 1.0 oder 1` (das "v" muss weggelassen werden)
-
-Es kann auch nur beispielsweise 1.0 angegeben werden. Dann wird die aktuellste Version mit dem Tag 1.0.x verwendet. Ebenso für "1".
+[Adler Moodle Images](https://github.com/ProjektAdLer/AdLerStack/pkgs/container/adlerstack)
 
 ## Backend
 
 Wird in der Datei `docker-compose.yaml` unter `services -> backend -> image` gesetzt.
 
-Standardmäßig wird der aktuelle main-Stand verwendet: `image: ghcr.io/projektadler/adlerbackend:main`
-
 Hinter dem Doppelpunkt wird der jeweilige Tag angegeben. Diese können dem Container Registry des Backend Repositories entnommen werden:
 
-[Adler Backend Container](https://github.com/ProjektAdLer/AdLerBackend/pkgs/container/adlerbackend)
+[Adler Backend Images](https://github.com/ProjektAdLer/AdLerBackend/pkgs/container/adlerbackend)
 
 ## Frontend
 
 Wird in der Datei `docker-compose.yaml` unter `services -> frontend -> image` gesetzt.
 
-Standardmäßig wird der aktuelle latest-Stand verwendet: `image: ghcr.io/projektadler/2d_3d_adler:latest`
-
 Hinter dem Doppelpunkt wird der jeweilige Tag angegeben. Diese können dem Container Registry des Frontend Repositories entnommen werden:
 
-[2D 3D Adler Container](https://github.com/ProjektAdLer/2D_3D_AdLer/pkgs/container/2d_3d_adler)
+[2D 3D Adler Images](https://github.com/ProjektAdLer/2D_3D_AdLer/pkgs/container/2d_3d_adler)
 
 # User
 
@@ -74,9 +64,9 @@ Folgende User werden automatisch erstellt:
 Dementsprechend ist die eigentliche API des Backends unter `http://localhost:8086/api` erreichbar. Diese Adresse wird dann auch im AMG verwendet.
 
 ## Ändern der URLs
-Um die Lokale Umgebung unter einer anderen URL (und somit auch von einem anderen Gerät im selben Netzwerk) zu erreichen , muss die Datei `.env` angepasst werden. Dafür in Zeile 11 die Variable  `_DOMAIN` mit der eigenen IP ersetzen.
+Um die Lokale Umgebung unter einer anderen URL (und somit auch von einem anderen Gerät im selben Netzwerk) zu erreichen , muss die Datei `.env` angepasst werden. Dafür die Variable `_DOMAIN` mit der eigenen IP ersetzen.
 
-> :warning: Wenn die lokale IP ohne weiteres gesetzt wird, funktioniert das zwar, man kann aber davon ausgehen, dass sich die lokale IP ändert. Dann muss die `.env` Datei erneut angepasst werden.
+> :warning: Wenn die lokale IP ohne weiteres gesetzt wird, funktioniert das zwar, man kann aber davon ausgehen, dass sich die lokale IP ändert (beispielsweise beim Arbeitsplatzwechsel). Dann muss die `.env` Datei erneut angepasst werden.
 
 # Starten der Umgebung
 
@@ -84,7 +74,7 @@ Um die Lokale Umgebung unter einer anderen URL (und somit auch von einem anderen
 2. Terminal im Ordner öffnen (Unter Windows Shift + Rechtsklick -> "Terminal öffnen")
    Sollte bereits eine Instanz laufen, nicht vergessen, vorher die Umgebung zu stoppen.
 3. `docker compose pull` ausführen. 
-4. `docker compose up -d --build` ausführen
+4. `docker compose up -d` ausführen
 
 # Stoppen der Umgebung
 

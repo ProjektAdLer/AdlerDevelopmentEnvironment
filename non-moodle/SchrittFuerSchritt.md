@@ -9,7 +9,7 @@
 5. Evtl muss die Virtualisierung im BIOS aktiviert werden. Sollte Docker desswegen meckern, dann den namen des eigenen Mainboards + "virtualisierung aktivieren" googlen und die Schritte befolgen
 6. Dieses Repo Klonen
 7. Terminal im Ordner öffnen (Unter Windows Shift + Rechtsklick -> "Terminal öffnen")
-8. `docker compose up -d --build` ausführen
+8. `docker compose up -d` ausführen
 9. Die Moodle URL öffnen (localhost:8085) und warten, bis Moodle gestartet ist
 
 ## Anleitung zum Hochladen von mbz-Dateien mit Postman
