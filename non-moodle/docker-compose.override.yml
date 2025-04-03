@@ -3,7 +3,6 @@ name: adlertestenvironment
 services:
   moodle:
     environment:
-      BITNAMI_DEBUG: true
       DECLARATIVE_SETUP_MANAGER_PASSWORD: ${_USER_MANAGER_PW}
       DECLARATIVE_SETUP_STUDENT_PASSWORD: ${_USER_STUDENT_PW}
       ADLER_PLAYBOOK_ROLES: "test_users"
