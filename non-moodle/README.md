@@ -2,18 +2,18 @@
 
 Standardmäßig wird die aktuellste Gesamtversion verwendet (der letzte Release des AdLer Stacks).
 
-Änderungen sind immer nur in der `docker-compose.override.yaml` Datei durchzuführen. 
+Änderungen sind immer nur in der `docker-compose.override.yml` Datei durchzuführen. 
 In dieser Datei einfach die zu ändernde Zeile einfügen, bspw.:
 ```yaml
 services:
     frontend:
         image: ghcr.io/projekt_adler/2d_3d_adler:latest
 ```
-Die `docker-compose.yaml` Datei wird automatisch verwaltet.
+Die `docker-compose.yml` Datei wird automatisch verwaltet.
 
 ## Moodle und Moodle Plugins
 
-In der Datei `docker-compose.override.yaml` unter `services -> moodle -> image`.
+In der Datei `docker-compose.override.yml` unter `services -> moodle -> image`.
 
 Hinter dem Doppelpunkt wird der jeweilige Tag angegeben. Diese können dem Container Registry des Backend Repositories entnommen werden:
 
@@ -21,7 +21,7 @@ Hinter dem Doppelpunkt wird der jeweilige Tag angegeben. Diese können dem Conta
 
 ## Backend
 
-Wird in der Datei `docker-compose.yaml` unter `services -> backend -> image` gesetzt.
+Wird in der Datei `docker-compose.yml` unter `services -> backend -> image` gesetzt.
 
 Hinter dem Doppelpunkt wird der jeweilige Tag angegeben. Diese können dem Container Registry des Backend Repositories entnommen werden:
 
@@ -29,7 +29,7 @@ Hinter dem Doppelpunkt wird der jeweilige Tag angegeben. Diese können dem Conta
 
 ## Frontend
 
-Wird in der Datei `docker-compose.yaml` unter `services -> frontend -> image` gesetzt.
+Wird in der Datei `docker-compose.yml` unter `services -> frontend -> image` gesetzt.
 
 Hinter dem Doppelpunkt wird der jeweilige Tag angegeben. Diese können dem Container Registry des Frontend Repositories entnommen werden:
 
