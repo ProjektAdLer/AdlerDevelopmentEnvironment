@@ -16,4 +16,3 @@ First find a compatible set of PHP and Moodle versions.
 
 Next modify the setup scripts:
 1) Change the PHP version (variable `PHP_VERSION`) in the [setup.sh](../setup.sh) script
-2) Change the Moodle version (variable `MOODLE_RELEASE`) in the [download_adler_moodle.sh](../download_adler_moodle.sh) script
