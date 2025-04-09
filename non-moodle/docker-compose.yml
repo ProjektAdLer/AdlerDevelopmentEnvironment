@@ -2,7 +2,7 @@
 
 services:
   moodle:
-    image: ghcr.io/projektadler/adler-moodle:6.2.1-moodle-4.5
+    image: ghcr.io/projektadler/adler-moodle:6.3.0-moodle-4.5
     environment:
       MOODLE_DATABASE_HOST: db_moodle
       MOODLE_DATABASE_PORT_NUMBER: 3306
