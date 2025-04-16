@@ -97,5 +97,5 @@ Moodle erfordert Docker internen (Backend) und externen (Docker-Host) Zugriff ü
 - Benutzerdefinierte Domain: erfordert erheblichen zusätzlichen Aufwand (ähnlich wie der Hostsystem-Hostname + mehr).
 - Hostsystem-IP oder 127.10.0.1: Die Host-IP ändert sich je nach Netzwerk, etc. Würde den LAN-Zugriff ermöglichen.
 Die deployment Konfiguration müsste jedes Mal, wenn sich die IP ändert, angepasst werden. Außerdem müsste Moodle jedes 
-Mal auf die neue IP "migriert" werden ([siehe Moodle-Guide](https://docs.moodle.org/500/de/Moodle_Migration).
+Mal auf die neue IP "migriert" werden ([siehe Moodle-Guide](https://docs.moodle.org/500/de/Moodle_Migration), [englischer Guide](https://docs.moodle.org/500/en/Moodle_migration).
 Der Docker host_gateway (standardmäßig 127.10.0.1) könnte gut funktionieren, aber nur für localhost, nicht für LAN.
