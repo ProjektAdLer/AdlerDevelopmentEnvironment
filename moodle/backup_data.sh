@@ -52,9 +52,18 @@ fi
 # Create backup directory
 mkdir -p $backup_dir
 
+# fix acl (moodle sets acl mask to --- on some files)
+for dir in moodledata; do
+    sudo setfacl -R -m u:$WSL_USER:rwx,u:www-data:rwx,m::rwx "$MOODLE_PARENT_DIRECTORY/$dir"
+    sudo setfacl -R -d -m u:$WSL_USER:rwx,u:www-data:rwx,m::rwx "$MOODLE_PARENT_DIRECTORY/$dir"
+done
+
 # Backup files
 cp -r $MOODLE_PARENT_DIRECTORY/moodledata $backup_dir/
 cp $MOODLE_PARENT_DIRECTORY/moodle/config.php $backup_dir/config.php
+
+# Backup acl
+getfacl -R $MOODLE_PARENT_DIRECTORY/moodledata > $backup_dir/moodledata.acl
 
 # Backup database
 mysqldump -h $DB_HOST -P 3312 -u root -p"$_DB_ROOT_PW" $_DB_MOODLE_NAME > $backup_dir/moodle_database.sql

@@ -1,5 +1,4 @@
 #!/bin/bash
-# TODO update/test with ubuntu 24.04
 WSL_USER=$(whoami)
 MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)
 HOST_IP=$(ip route | grep default | awk '{print $3}')
@@ -12,6 +11,7 @@ fi
 # configuration
 APACHE_VHOST_PORT=5080  # this is the port the moodle is available at
 PHP_VERSION=8.3
+MOODLE_TAG=v5.0.0
 
 # Default value for DB_HOST
 DB_HOST="127.0.0.1"
@@ -36,7 +36,7 @@ set +o allexport
 # check if moodle is already installed
 if [ -f $MOODLE_PARENT_DIRECTORY/moodle/config.php ]
 then
-    echo "Moodle is already installed. Please run reset_data.sh first."
+    echo "Moodle is already installed. Please run reset_data.sh first. If you want to restore a previous moodle installation, do it after running this script."
     exit 1
 fi
 
@@ -48,12 +48,15 @@ then
     exit 1
 fi
 
+# grant docker access to the current user
+sudo usermod -aG docker $WSL_USER
+
 # update package list and upgrade packages
 sudo apt update
 sudo apt dist-upgrade -y
 
 # install dependencies
-sudo apt install -y apache2 php$PHP_VERSION php$PHP_VERSION-curl php$PHP_VERSION-zip composer php$PHP_VERSION-gd php$PHP_VERSION-dom php$PHP_VERSION-xml php$PHP_VERSION-mysqli php$PHP_VERSION-soap php$PHP_VERSION-xmlrpc php$PHP_VERSION-intl php$PHP_VERSION-xdebug php$PHP_VERSION-pgsql php$PHP_VERSION-tidy mariadb-client default-jre zstd
+sudo apt install -y acl apache2 php$PHP_VERSION php$PHP_VERSION-curl php$PHP_VERSION-zip composer php$PHP_VERSION-gd php$PHP_VERSION-dom php$PHP_VERSION-xml php$PHP_VERSION-mysqli php$PHP_VERSION-soap php$PHP_VERSION-xmlrpc php$PHP_VERSION-intl php$PHP_VERSION-xdebug php$PHP_VERSION-pgsql php$PHP_VERSION-tidy mariadb-client default-jre zstd
 
 # install locales
 sudo sed -i 's/^# de_DE.UTF-8 UTF-8$/de_DE.UTF-8 UTF-8/' /etc/locale.gen
@@ -64,25 +67,10 @@ sudo locale-gen
 # create moodle folders
 mkdir $MOODLE_PARENT_DIRECTORY/moodledata $MOODLE_PARENT_DIRECTORY/moodledata_phpu $MOODLE_PARENT_DIRECTORY/moodledata_bht
 # download moodle to $MOODLE_PARENT_DIRECTORY/moodle
+git clone --depth 1 --branch $MOODLE_TAG https://github.com/moodle/moodle.git  $MOODLE_PARENT_DIRECTORY/moodle
 
 # setup database
-# TODO: healthcheck for db and then --wait
-sudo --preserve-env docker compose up -d
-# Define a timeout of 20 seconds
-TIMEOUT=15
-# Check the database status every second
-for ((i=0; i<TIMEOUT; i++)); do
-    if mysqladmin ping -h $DB_HOST -P3312 --connect-timeout=5 --silent 2>/dev/null; then
-        echo "db is up"
-        break
-    fi
-    echo "db is starting"
-    sleep 1
-done
-if [ $i -eq $TIMEOUT ]; then
-    echo "Error: Database did not start within $TIMEOUT seconds."
-    exit 1
-fi
+sudo --preserve-env docker compose up -d --wait
 
 # configure apache
 # Create a new virtual host configuration file
@@ -102,10 +90,11 @@ sudo a2ensite moodle.conf
 echo "Listen $APACHE_VHOST_PORT" | sudo tee -a /etc/apache2/ports.conf
 # Change user and group of apache to the user of the WSL
 ## Set ACLs to ensure both users have read, write, and execute permissions on the directory, its subdirectories, and existing files
-#sudo setfacl -R -m u:$USER1:rwx,u:$USER2:rwx $TARGET_DIRECTORY
-## Ensure default ACLs are set for new files and directories
-#sudo setfacl -R -d -m u:$USER1:rwx,u:$USER2:rwx $TARGET_DIRECTORYsudo sed -i "s#export APACHE_RUN_USER=www-data#export APACHE_RUN_USER=$WSL_USER#g" /etc/apache2/envvars
-sudo sed -i "s#export APACHE_RUN_GROUP=www-data#export APACHE_RUN_GROUP=$WSL_USER#g" /etc/apache2/envvars
+sudo setfacl -m u:www-data:rx "$MOODLE_PARENT_DIRECTORY"
+for dir in moodle moodledata moodledata_phpu moodledata_bht; do
+    sudo setfacl -R -m u:$WSL_USER:rwx,u:www-data:rwx,m::rwx "$MOODLE_PARENT_DIRECTORY/$dir"
+    sudo setfacl -R -d -m u:$WSL_USER:rwx,u:www-data:rwx,m::rwx "$MOODLE_PARENT_DIRECTORY/$dir"
+done
 
 # configure php
 ## conf.d/moodle.ini
@@ -143,15 +132,6 @@ sudo service apache2 restart
 
 # install moodle
 php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/install.php --lang=DE --wwwroot=http://localhost:$APACHE_VHOST_PORT --dataroot=$MOODLE_PARENT_DIRECTORY/moodledata --dbtype=mariadb --dbhost=$DB_HOST --dbport=3312 --dbuser=${_DB_MOODLE_USER} --dbpass=${_DB_MOODLE_PW} --dbname=${_DB_MOODLE_NAME} --fullname=fullname --shortname=shortname --adminuser=${_MOODLE_USER} --adminpass=${_MOODLE_PW} --adminemail=admin@blub.blub --supportemail=admin@blub.blub --non-interactive --agree-license
-
-# setup for plugins (but don't download them, they have to be present in the moodle folder already)
-# TODO: refactor with/for new playbook approach
-# php local/declarativesetup/cli/run_playbook.php -p=adler -r=moodle_dev_env
-# and role test_users
-git clone https://github.com/ProjektAdLer/moodle-docker /tmp/moodle-docker
-cp -r /tmp/moodle-docker/opt/adler/moodle/adler_setup $MOODLE_PARENT_DIRECTORY/moodle/
-rm -rf /tmp/moodle-docker
-php $MOODLE_PARENT_DIRECTORY/moodle/adler_setup/setup.php --first_run=true --user_name=${_USER_NAME} --user_password=${_USER_PASSWORD} --user_role=${_USER_ROLE}
 
 # moodle config.php
 # remove the require_once line as it has to be at the end of the file
@@ -196,7 +176,7 @@ require_once(__DIR__ . '/lib/setup.php'); // Do not edit
 
 # configure cron job
 echo adding cron job
-echo "*/1 * * * * $WSL_USER php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/cron.php > /dev/null 2>> $MOODLE_PARENT_DIRECTORY/moodledata/moodle-cron.log" | sudo tee /etc/cron.d/moodle
+echo "*/10 * * * * www-data php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/cron.php > /dev/null 2>> $MOODLE_PARENT_DIRECTORY/moodledata/moodle-cron.log" | sudo tee /etc/cron.d/moodle
 
 
 cd $MOODLE_PARENT_DIRECTORY/moodle
@@ -207,12 +187,14 @@ composer i
 git clone https://github.com/andrewnicols/moodle-browser-config
 
 # setup test environments
-php admin/tool/phpunit/cli/init.php
-php admin/tool/behat/cli/init.php
+echo "Run the following commands to setup the test environments:"
+echo php admin/tool/phpunit/cli/init.php
+echo php admin/tool/behat/cli/init.php
 
 echo moodle login data: username: ${_MOODLE_USER} password: ${_MOODLE_PW}
 echo db root password: ${_DB_ROOT_PW}
-echo Host IP (for IDE config): $HOST_IP
+echo "Host IP (for IDE config): $HOST_IP"
+echo "Moodle is available at http://localhost:$APACHE_VHOST_PORT"
 
 
 

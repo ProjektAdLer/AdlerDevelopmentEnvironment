@@ -1,14 +1,4 @@
 # Moodle dev env
-> [!CAUTION]
-> The development environment now requires Ubuntu **24.04**
-
-> [!IMPORTANT]
-> The Moodle port is now **5080** instead of 80.
-
-> [!NOTE]  
-> For use with Ubuntu **22.04** change the PHP Version to 8.1 as described in [Change Moodle <-> PHP version to install](doc/change_moodle_php_version.md).
-> For now you should not have to expect issues doing this, but it is recommended to set up a fresh Ubuntu 24.04 instance 
-> soon.
 
 ## Requirements
 - WSL2 with Distro **Ubuntu 24.04**
@@ -16,12 +6,9 @@
 - Docker Desktop
 
 ## Warnings / Hints
-- This approach expects apache is not yet used in the WSL instance.
-  It will likely break whatever apache is running in the WSL instance.
-  If you are already using apache in the WSL instance, you might want to use another `--distribution` for this approach.
-  Note that you will likely also have to change the port of the apache server in this case.
 - To resolve any issues with shell scripts (typically ^M errors), disable automatic line ending conversion in git by running:
-`git config --global core.autocrlf false` or `git config --global core.autocrlf input`
+`git config --global core.autocrlf input`
+The repo has to be cloned again after this change.
 
 ## Preparations
 This section will describe how to set up and reset the development environment.
@@ -30,22 +17,13 @@ This section will describe how to set up and reset the development environment.
 2. Clone this repository to a place of your choice (eg `/home/<wsl username>/AdlerDevelopmentEnvironment`).
 3. continue with the following sections
 
-**Note**: Git on Windows has a stupid default setting that can result in line ending error (error message with `^M`) 
-when executing shell scripts. To fix this issue
-- delete the repository
-- disable automatic line ending conversion in git (`git config --global core.autocrlf input`)
-- clone the repository again.
-
 ## Install Moodle
-1) Download Moodle to `/home/<wsl username>/moodle` and AdLer Plugins.
-   - Moodle: `git clone --depth=1 --branch=MOODLE_<version, eg 405>_STABLE https://github.com/moodle/moodle.git <your home directory>/moodle`
-   - Plugins: Clone all plugins to their corresponding directory. See the 
-     [Adler LMS -> plugins.json](https://github.com/ProjektAdLer/MoodleAdlerLMS/blob/main/plugins.json) for a list of
-     all plugins and [Moodle documentation](https://moodledev.io/docs/4.1/apis/plugintypes) for the target directories
+1) Run the `setup.sh` script as non-root user
+2) Plugins: Clone all plugins to their corresponding directory. See the 
+     [Adler LMS -> plugins.json](https://github.com/ProjektAdLer/MoodleAdlerLMS/blob/main/plugins.json) for a list of all plugins and [Moodle documentation](https://moodledev.io/docs/4.1/apis/plugintypes) for the target directories
      to clone it to. Example command: `git clone <git url> local/adler`
      - Note for playbook_adler: playbooks are subplugins of local_declarativesetup. The plugin directory is `local/declarativesetup/playbook`
-2) Execute the setup Script: `./setup.sh` as non-root user \
-   The [setup.sh bash script](setup.sh) sets up your environment, including installing required packages, setting up the database, and configuring Apache and PHP.
+3) Run adler playbook `DECLARATIVE_SETUP_MANAGER_PASSWORD='Manager1234!1234' DECLARATIVE_SETUP_STUDENT_PASSWORD='Student1234!1234' php local/declarativesetup/cli/run_playbook.php -p=adler -r=test_users,moodle_dev_env`
 
 ## Access Moodle
 - Moodle is available at [http://localhost:5080](http://localhost:5080)

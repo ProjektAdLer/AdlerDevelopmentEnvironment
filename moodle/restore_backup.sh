@@ -83,12 +83,20 @@ backup_folder_name=$(ls "$restore_dir")
 full_restore_path="$restore_dir/$backup_folder_name"
 
 # clear moodledata and moodledata_phpu
-rm -rf $MOODLE_PARENT_DIRECTORY/moodledata/*
+sudo rm -rf $MOODLE_PARENT_DIRECTORY/moodledata/*
 
 # Restore files and database
 cp -r "$full_restore_path/moodledata" $MOODLE_PARENT_DIRECTORY/
 cp "$full_restore_path/config.php" $MOODLE_PARENT_DIRECTORY/moodle/config.php
 mysql -h $DB_HOST -P 3312 -u root -p"$_DB_ROOT_PW" $_DB_MOODLE_NAME < "$full_restore_path/moodle_database.sql"
+
+# Restore ACLs if backup exists
+if [ -f "$full_restore_path/moodledata.acl" ]; then
+    echo "Restoring ACLs..."
+    sudo setfacl --restore="$full_restore_path/moodledata.acl"
+else
+    echo "No ACL backup found (likely an older backup). Not setting ACLs."
+fi
 
 # Clean up
 rm -rf "$restore_dir"
