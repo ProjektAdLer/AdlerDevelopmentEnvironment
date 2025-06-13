@@ -18,7 +18,8 @@ This section will describe how to set up and reset the development environment.
 3. continue with the following sections
 
 ## Install Moodle
-1) Run the `setup.sh` script as non-root user
+1) Run the `setup.sh` script as non-root user. 
+   - For using an existing MariaDB database without using Docker, see [Using Existing Database](doc/existing_database.md)
 2) Plugins: Clone all plugins to their corresponding directory. See the 
      [Adler LMS -> plugins.json](https://github.com/ProjektAdLer/MoodleAdlerLMS/blob/main/plugins.json) for a list of all plugins and [Moodle documentation](https://moodledev.io/docs/4.1/apis/plugintypes) for the target directories
      to clone it to. Example command: `git clone <git url> local/adler`
@@ -70,6 +71,7 @@ debug tools.
 - [Update Moodle](doc/update_moodle.md)
 - [Change Moodle <-> PHP version to install](doc/change_moodle_php_version.md)
 - [Use Postgresql instead of MariaDB](doc/postgresql.md)
+- [Use existing MariaDB database instead of Docker](doc/existing_database.md)
 - [Evaluation of different approaches to set up this Moodle development environment](doc/alternative_approaches.md)
 - [Use web server instead of php -S](doc/webserver_setup.md)
 

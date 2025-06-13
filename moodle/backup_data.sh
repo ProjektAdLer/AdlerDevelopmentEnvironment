@@ -7,17 +7,32 @@ if [ "$WSL_USER" == "root" ]; then
     exit 1
 fi
 
-# Default value for DB_HOST
+# Default values
 DB_HOST="127.0.0.1"
+SKIP_DOCKER=false
+DB_PORT=""
 
-# Parse command line arguments for DB_HOST
+# Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --dbhost|-d) DB_HOST="$2"; shift ;;
+        --dbport|-p) DB_PORT="$2"; shift ;;
+        --skip-docker|-s) SKIP_DOCKER=true ;;
         *) ;;
     esac
     shift
 done
+
+# Set DB_PORT based on Docker usage
+if [ "$SKIP_DOCKER" = true ]; then
+    DB_PORT=${DB_PORT:-3306}  # Default MariaDB port for local installation
+else
+    DB_PORT=${DB_PORT:-3312}  # Docker compose port
+fi
+
+echo "DB_HOST is set to $DB_HOST"
+echo "DB_PORT is set to $DB_PORT"
+echo "SKIP_DOCKER is set to $SKIP_DOCKER"
 
 # Load additional environment variables from .env
 set -o allexport
@@ -66,7 +81,7 @@ cp $MOODLE_PARENT_DIRECTORY/moodle/config.php $backup_dir/config.php
 getfacl -R $MOODLE_PARENT_DIRECTORY/moodledata > $backup_dir/moodledata.acl
 
 # Backup database
-mysqldump -h $DB_HOST -P 3312 -u root -p"$_DB_ROOT_PW" $_DB_MOODLE_NAME > $backup_dir/moodle_database.sql
+mysqldump -h $DB_HOST -P $DB_PORT -u root -p"$_DB_ROOT_PW" $_DB_MOODLE_NAME > $backup_dir/moodle_database.sql
 
 # Create compressed archive
 start=$(date +%s%N)

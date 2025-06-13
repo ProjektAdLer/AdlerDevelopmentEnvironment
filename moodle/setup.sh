@@ -1,5 +1,22 @@
 #!/bin/bash
 
+# Show usage information
+show_usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  -d, --dbhost HOST      Set database host (default: 127.0.0.1)"
+    echo "  -p, --dbport PORT      Set database port (default: 3312 for Docker, 3306 for local)"
+    echo "  -s, --skip-docker      Skip Docker setup and use another MariaDB server. Set credentials in .env file."
+    echo "  -h, --help             Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                     # Default setup with Docker MariaDB"
+    echo "  $0 --skip-docker       # Do not start mariaDB in Docker"
+    echo "  $0 -d 192.168.1.100 -s # Use existing MariaDB on 192.168.1.100 and skip Docker setup"
+    exit 0
+}
+
 # configuration
 MOODLE_PORT=5080  # this is the port the moodle is available at
 PHP_VERSION=8.3
@@ -7,6 +24,10 @@ MOODLE_TAG=v5.0.0
 
 # Default value for DB_HOST
 DB_HOST="127.0.0.1"
+# Default value for skipping Docker
+SKIP_DOCKER=false
+# Set default DB port based on Docker usage (will be updated after parsing arguments)
+DB_PORT=""
 
 WSL_USER=$(whoami)
 MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)/moodle
@@ -21,11 +42,25 @@ fi
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --dbhost|-d) DB_HOST="$2"; shift ;;
+        --dbport|-p) DB_PORT="$2"; shift ;;
+        --skip-docker|-s) SKIP_DOCKER=true ;;
+        --help|-h) show_usage ;;
         *) ;;
     esac
     shift
 done
 echo "DB_HOST is set to $DB_HOST"
+echo "SKIP_DOCKER is set to $SKIP_DOCKER"
+
+# Set DB_PORT based on Docker usage
+if [ "$SKIP_DOCKER" = true ]; then
+    DB_PORT=${DB_PORT:-3306}  # Default MariaDB port for local installation
+    echo "Using local MariaDB setup (Docker will be skipped)"
+else
+    DB_PORT=${DB_PORT:-3312}  # Docker compose port
+    echo "Using Docker-based MariaDB setup"
+fi
+echo "DB_PORT is set to $DB_PORT"
 
 cd "$(dirname "$0")"
 
@@ -41,16 +76,19 @@ then
     exit 1
 fi
 
-# check docker is available
-if ! docker &> /dev/null
-then
-    echo "Docker is not working as expected."
-    docker
-    exit 1
-fi
+# check docker is available (skip if --skip-docker is used)
+if [ "$SKIP_DOCKER" = false ]; then
+    # grant docker access to the current user
+    sudo usermod -aG docker $WSL_USER
 
-# grant docker access to the current user
-sudo usermod -aG docker $WSL_USER
+    if ! docker &> /dev/null
+    then
+        echo "Docker is not working as expected."
+        docker
+        exit 1
+    fi
+    
+fi
 
 # update package list and upgrade packages
 sudo apt update
@@ -72,7 +110,11 @@ mkdir $MOODLE_PARENT_DIRECTORY/moodledata $MOODLE_PARENT_DIRECTORY/moodledata_ph
 git clone --depth 1 --branch $MOODLE_TAG https://github.com/moodle/moodle.git  $MOODLE_PARENT_DIRECTORY/moodle
 
 # setup database
-sudo --preserve-env docker compose up -d --wait
+if [ "$SKIP_DOCKER" = false ]; then
+    docker compose up -d --wait
+else
+    echo "Skipping Docker database setup. Assuming local MariaDB is already running."
+fi
 
 # setup permissions for moodle directories
 # Set ACLs to ensure the current user has read, write, and execute permissions on the directory and its subdirectories
@@ -113,7 +155,7 @@ xdebug.idekey=phpstorm
 " | sudo tee /etc/php/$PHP_VERSION/cli/conf.d/20-xdebug.ini
 
 # install moodle
-php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/install.php --lang=DE --wwwroot=http://localhost:$MOODLE_PORT --dataroot=$MOODLE_PARENT_DIRECTORY/moodledata --dbtype=mariadb --dbhost=$DB_HOST --dbport=3312 --dbuser=${_DB_MOODLE_USER} --dbpass=${_DB_MOODLE_PW} --dbname=${_DB_MOODLE_NAME} --fullname=fullname --shortname=shortname --adminuser=${_MOODLE_USER} --adminpass=${_MOODLE_PW} --adminemail=admin@blub.blub --supportemail=admin@blub.blub --non-interactive --agree-license
+php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/install.php --lang=DE --wwwroot=http://localhost:$MOODLE_PORT --dataroot=$MOODLE_PARENT_DIRECTORY/moodledata --dbtype=mariadb --dbhost=$DB_HOST --dbport=$DB_PORT --dbuser=${_DB_MOODLE_USER} --dbpass=${_DB_MOODLE_PW} --dbname=${_DB_MOODLE_NAME} --fullname=fullname --shortname=shortname --adminuser=${_MOODLE_USER} --adminpass=${_MOODLE_PW} --adminemail=admin@blub.blub --supportemail=admin@blub.blub --non-interactive --agree-license
 
 # moodle config.php
 # remove the require_once line as it has to be at the end of the file
@@ -174,13 +216,14 @@ echo php admin/tool/phpunit/cli/init.php
 echo php admin/tool/behat/cli/init.php
 
 echo moodle login data: username: ${_MOODLE_USER} password: ${_MOODLE_PW}
-echo db root password: ${_DB_ROOT_PW}
+if [ "$SKIP_DOCKER" = false ]; then
+    echo db root password: ${_DB_ROOT_PW}
+else
+    echo "Using local MariaDB database on $DB_HOST:$DB_PORT"
+fi
 echo "Host IP (for IDE config): $HOST_IP"
 echo ""
 echo "Setup complete! To start Moodle with PHP built-in server, run:"
 echo "cd $MOODLE_PARENT_DIRECTORY/moodle && php -S localhost:$MOODLE_PORT"
 echo ""
 echo "Moodle will be available at http://localhost:$MOODLE_PORT"
-
-
-
