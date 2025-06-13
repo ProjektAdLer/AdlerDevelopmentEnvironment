@@ -42,12 +42,22 @@ Press `Ctrl+C` to stop the server.
 - After starting the server, Moodle is available at [http://localhost:5080](http://localhost:5080)
 - Default credentials can be taken from [.env](.env) file.
 
-## Further Scripts
+## Reset environment
 
-### uninstall script
+To reset the environment and start fresh, manually delete the following:
 
-To reset the environment run the [reset_data.sh](reset_data.sh) script.
-It will not undo all changes made by the installation script, just delete all data so the setup-script can be run again.
+
+0. Create a backup using the provided backup script: `backup_data.sh`
+1. **Database**: 
+  1. If using docker (default): Stop and remove Docker containers and volumes: `docker compose down -v`
+  2. If using another database server: Drop the Moodle database
+2. **Moodle data directories**: clear the Moodle data directories:
+   - `rm -rf ~/moodle/moodledata`
+   - `rm -rf ~/moodle/moodledata_bht`
+   - `rm -rf ~/moodle/moodledata_phpu` 
+3. **Moodle config**: delete the Moodle configuration file `config.php`
+
+After this cleanup, you can run the setup script again.
 
 ### backup and restore scripts
 - [backup_data.sh](backup_data.sh): Creates a backup of Moodle data and database. Run using ./backup_data.sh.
