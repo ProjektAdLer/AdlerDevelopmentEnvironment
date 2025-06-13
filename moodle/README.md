@@ -26,6 +26,9 @@ This section will describe how to set up and reset the development environment.
 3) Run adler playbook `DECLARATIVE_SETUP_MANAGER_PASSWORD='Manager1234!1234' DECLARATIVE_SETUP_STUDENT_PASSWORD='Student1234!1234' php local/declarativesetup/cli/run_playbook.php -p=adler -r=test_users,moodle_dev_env`
 
 ## Start Development Server
+
+**Note:** The PHP built-in server (`php -S`) is slower compared to a full web server. For better performance, consider using a full web server like Caddy or Apache. See [Alternative Web Server Setup](doc/webserver_setup.md) for detailed instructions.
+
 After completing the installation above, start the development server:
 
 ```bash
@@ -68,3 +71,22 @@ debug tools.
 - [Change Moodle <-> PHP version to install](doc/change_moodle_php_version.md)
 - [Use Postgresql instead of MariaDB](doc/postgresql.md)
 - [Evaluation of different approaches to set up this Moodle development environment](doc/alternative_approaches.md)
+
+----
+
+php -S
+	in moodle ordner
+	php -S localhost:5080
+	
+	-> geht aber etwas langsam
+	
+caddy
+	benötigt php-fpm
+	systemctl stop caddy && systemctl disable caddy
+	Caddyfile in moodle ordner
+		:5080
+		root * /home/markus/moodle
+		#php_fastcgi 127.0.0.1:9000
+		php_fastcgi unix//run/php/php-fpm.sock
+		file_server
+	in moodle ordner: sudo caddy run
