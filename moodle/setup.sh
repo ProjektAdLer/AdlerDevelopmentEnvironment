@@ -9,7 +9,7 @@ if [ "$WSL_USER" == "root" ]; then
 fi
 
 # configuration
-APACHE_VHOST_PORT=5080  # this is the port the moodle is available at
+MOODLE_PORT=5080  # this is the port the moodle is available at
 PHP_VERSION=8.3
 MOODLE_TAG=v5.0.0
 
@@ -56,7 +56,7 @@ sudo apt update
 sudo apt dist-upgrade -y
 
 # install dependencies
-sudo apt install -y acl apache2 php$PHP_VERSION php$PHP_VERSION-curl php$PHP_VERSION-zip composer php$PHP_VERSION-gd php$PHP_VERSION-dom php$PHP_VERSION-xml php$PHP_VERSION-mysqli php$PHP_VERSION-soap php$PHP_VERSION-xmlrpc php$PHP_VERSION-intl php$PHP_VERSION-xdebug php$PHP_VERSION-pgsql php$PHP_VERSION-tidy mariadb-client default-jre zstd
+sudo apt install -y acl php$PHP_VERSION php$PHP_VERSION-curl php$PHP_VERSION-zip composer php$PHP_VERSION-gd php$PHP_VERSION-dom php$PHP_VERSION-xml php$PHP_VERSION-mysqli php$PHP_VERSION-soap php$PHP_VERSION-xmlrpc php$PHP_VERSION-intl php$PHP_VERSION-xdebug php$PHP_VERSION-pgsql php$PHP_VERSION-tidy mariadb-client default-jre zstd
 
 # install locales
 sudo sed -i 's/^# de_DE.UTF-8 UTF-8$/de_DE.UTF-8 UTF-8/' /etc/locale.gen
@@ -72,42 +72,25 @@ git clone --depth 1 --branch $MOODLE_TAG https://github.com/moodle/moodle.git  $
 # setup database
 sudo --preserve-env docker compose up -d --wait
 
-# configure apache
-# Create a new virtual host configuration file
-echo "<VirtualHost *:$APACHE_VHOST_PORT>
-    DocumentRoot $MOODLE_PARENT_DIRECTORY/moodle
-    <Directory $MOODLE_PARENT_DIRECTORY>
-        Options Indexes FollowSymLinks
-        AllowOverride All
-        Require all granted
-    </Directory>
-    ErrorLog \${APACHE_LOG_DIR}/moodle_error.log
-    CustomLog \${APACHE_LOG_DIR}/moodle_access.log combined
-</VirtualHost>" | sudo tee /etc/apache2/sites-available/moodle.conf
-# Enable the new virtual host configuration
-sudo a2ensite moodle.conf
-# Add the custom port to ports.conf
-echo "Listen $APACHE_VHOST_PORT" | sudo tee -a /etc/apache2/ports.conf
-# Change user and group of apache to the user of the WSL
-## Set ACLs to ensure both users have read, write, and execute permissions on the directory, its subdirectories, and existing files
-sudo setfacl -m u:www-data:rx "$MOODLE_PARENT_DIRECTORY"
+# setup permissions for moodle directories
+# Set ACLs to ensure the current user has read, write, and execute permissions on the directory and its subdirectories
+sudo setfacl -m u:$WSL_USER:rx "$MOODLE_PARENT_DIRECTORY"
 for dir in moodle moodledata moodledata_phpu moodledata_bht; do
-    sudo setfacl -R -m u:$WSL_USER:rwx,u:www-data:rwx,m::rwx "$MOODLE_PARENT_DIRECTORY/$dir"
-    sudo setfacl -R -d -m u:$WSL_USER:rwx,u:www-data:rwx,m::rwx "$MOODLE_PARENT_DIRECTORY/$dir"
+    sudo setfacl -R -m u:$WSL_USER:rwx,m::rwx "$MOODLE_PARENT_DIRECTORY/$dir"
+    sudo setfacl -R -d -m u:$WSL_USER:rwx,m::rwx "$MOODLE_PARENT_DIRECTORY/$dir"
 done
 
 # configure php
 ## conf.d/moodle.ini
 echo "max_input_vars = 5000" | sudo tee /etc/php/$PHP_VERSION/cli/conf.d/moodle.ini
-sudo ln -s  /etc/php/$PHP_VERSION/cli/conf.d/moodle.ini /etc/php/$PHP_VERSION/apache2/conf.d/moodle.ini
-## apache/php.ini
-if grep -q "upload_max_filesize" /etc/php/$PHP_VERSION/apache2/php.ini; then
-    sudo sed -i 's/^\(\s*;\?\s*\)upload_max_filesize\s*=\s*[0-9]*M/\upload_max_filesize = 2048M/' /etc/php/$PHP_VERSION/apache2/php.ini
+## cli/php.ini - configure for built-in server
+if grep -q "upload_max_filesize" /etc/php/$PHP_VERSION/cli/php.ini; then
+    sudo sed -i 's/^\(\s*;\?\s*\)upload_max_filesize\s*=\s*[0-9]*M/\upload_max_filesize = 2048M/' /etc/php/$PHP_VERSION/cli/php.ini
 else
-    echo "upload_max_filesize = 2048M" | sudo tee -a /etc/php/$PHP_VERSION/apache2/php.ini
+    echo "upload_max_filesize = 2048M" | sudo tee -a /etc/php/$PHP_VERSION/cli/php.ini
 fi
-sudo sed -i 's/^\(\s*;\?\s*\)post_max_size\s*=\s*[0-9]*M/\post_max_size = 2048M/' /etc/php/$PHP_VERSION/apache2/php.ini
-sudo sed -i 's/^\(\s*;\?\s*\)memory_limit\s*=\s*[0-9]*M/\memory_limit = 256M/' /etc/php/$PHP_VERSION/apache2/php.ini
+sudo sed -i 's/^\(\s*;\?\s*\)post_max_size\s*=\s*[0-9]*M/\post_max_size = 2048M/' /etc/php/$PHP_VERSION/cli/php.ini
+sudo sed -i 's/^\(\s*;\?\s*\)memory_limit\s*=\s*[0-9]*M/\memory_limit = 256M/' /etc/php/$PHP_VERSION/cli/php.ini
 
 
 echo "[XDebug]
@@ -118,7 +101,7 @@ xdebug.mode=debug
 ;xdebug.mode=develop
 xdebug.client_port=9000
 
-; host ip adress of wsl network adapter
+; host ip address of wsl network adapter
 xdebug.client_host=$HOST_IP
 
 ; idekey value is specific to PhpStorm
@@ -127,15 +110,10 @@ xdebug.idekey=phpstorm
 // always enabling debugging slows down the web interface significantly.
 // Instead prefer to enable debugging only when needed. See README.md for more information.
 ;xdebug.start_with_request=true
-" | sudo tee /etc/php/$PHP_VERSION/apache2/conf.d/20-xdebug.ini
-sudo rm /etc/php/$PHP_VERSION/cli/conf.d/20-xdebug.ini
-sudo ln -s  /etc/php/$PHP_VERSION/apache2/conf.d/20-xdebug.ini /etc/php/$PHP_VERSION/cli/conf.d/20-xdebug.ini
-
-# restart apache to apply updated config
-sudo service apache2 restart
+" | sudo tee /etc/php/$PHP_VERSION/cli/conf.d/20-xdebug.ini
 
 # install moodle
-php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/install.php --lang=DE --wwwroot=http://localhost:$APACHE_VHOST_PORT --dataroot=$MOODLE_PARENT_DIRECTORY/moodledata --dbtype=mariadb --dbhost=$DB_HOST --dbport=3312 --dbuser=${_DB_MOODLE_USER} --dbpass=${_DB_MOODLE_PW} --dbname=${_DB_MOODLE_NAME} --fullname=fullname --shortname=shortname --adminuser=${_MOODLE_USER} --adminpass=${_MOODLE_PW} --adminemail=admin@blub.blub --supportemail=admin@blub.blub --non-interactive --agree-license
+php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/install.php --lang=DE --wwwroot=http://localhost:$MOODLE_PORT --dataroot=$MOODLE_PARENT_DIRECTORY/moodledata --dbtype=mariadb --dbhost=$DB_HOST --dbport=3312 --dbuser=${_DB_MOODLE_USER} --dbpass=${_DB_MOODLE_PW} --dbname=${_DB_MOODLE_NAME} --fullname=fullname --shortname=shortname --adminuser=${_MOODLE_USER} --adminpass=${_MOODLE_PW} --adminemail=admin@blub.blub --supportemail=admin@blub.blub --non-interactive --agree-license
 
 # moodle config.php
 # remove the require_once line as it has to be at the end of the file
@@ -170,7 +148,7 @@ echo "
 //=========================================================================
 // Behat test site needs a unique www root, data directory and database prefix:
 //
-\$CFG->behat_wwwroot = 'http://127.0.0.1:$APACHE_VHOST_PORT';
+\$CFG->behat_wwwroot = 'http://127.0.0.1:$MOODLE_PORT';
 \$CFG->behat_prefix = 'bht_';
 \$CFG->behat_dataroot = '$MOODLE_PARENT_DIRECTORY/moodledata_bht';
 
@@ -180,7 +158,7 @@ require_once(__DIR__ . '/lib/setup.php'); // Do not edit
 
 # configure cron job
 echo adding cron job
-echo "*/10 * * * * www-data php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/cron.php > /dev/null 2>> $MOODLE_PARENT_DIRECTORY/moodledata/moodle-cron.log" | sudo tee /etc/cron.d/moodle
+echo "*/10 * * * * $WSL_USER php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/cron.php > /dev/null 2>> $MOODLE_PARENT_DIRECTORY/moodledata/moodle-cron.log" | sudo tee /etc/cron.d/moodle
 
 
 cd $MOODLE_PARENT_DIRECTORY/moodle
@@ -198,7 +176,11 @@ echo php admin/tool/behat/cli/init.php
 echo moodle login data: username: ${_MOODLE_USER} password: ${_MOODLE_PW}
 echo db root password: ${_DB_ROOT_PW}
 echo "Host IP (for IDE config): $HOST_IP"
-echo "Moodle is available at http://localhost:$APACHE_VHOST_PORT"
+echo ""
+echo "Setup complete! To start Moodle with PHP built-in server, run:"
+echo "cd $MOODLE_PARENT_DIRECTORY/moodle && php -S localhost:$MOODLE_PORT"
+echo ""
+echo "Moodle will be available at http://localhost:$MOODLE_PORT"
 
 
 

@@ -25,8 +25,17 @@ This section will describe how to set up and reset the development environment.
      - Note for playbook_adler: playbooks are subplugins of local_declarativesetup. The plugin directory is `local/declarativesetup/playbook`
 3) Run adler playbook `DECLARATIVE_SETUP_MANAGER_PASSWORD='Manager1234!1234' DECLARATIVE_SETUP_STUDENT_PASSWORD='Student1234!1234' php local/declarativesetup/cli/run_playbook.php -p=adler -r=test_users,moodle_dev_env`
 
+## Start Development Server
+After completing the installation above, start the development server:
+
+```bash
+cd ~/moodle && php -S localhost:5080
+```
+
+Press `Ctrl+C` to stop the server.
+
 ## Access Moodle
-- Moodle is available at [http://localhost:5080](http://localhost:5080)
+- After starting the server, Moodle is available at [http://localhost:5080](http://localhost:5080)
 - Default credentials can be taken from [.env](.env) file.
 
 ## Further Scripts
