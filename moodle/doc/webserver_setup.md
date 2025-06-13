@@ -54,6 +54,8 @@ sudo caddy run
 
 sudo is required to use the php-fpm socket. It should be possible to solve it without the need of sudo.
 
+**Note:** Caddy with PHP-FPM will automatically use the PHP CLI configuration, so no additional PHP configuration is needed.
+
 ## Apache Web Server
 
 More complex to set up and requires lots of changes to the system, potentially beeing in conflict with other services.
@@ -119,7 +121,22 @@ done
 
 Note: You might still run into permission errors. These should be files where moodle explicitly sets permissions (like session files). You can safely delete them. This will log you out of your local moodle. Just log in again.
 
-5. Restart Apache to apply changes:
+5. Configure PHP for Apache:
+
+Apache uses a separate PHP configuration from the CLI version. You need to link the configuration files created during setup from `/etc/php/VERSION/cli/conf.d/` to `/etc/php/VERSION/apache2/conf.d/`.
+
+**Important:** Always check your main setup script (`setup.sh`) for the exact PHP configuration files that are created, as there might be changes not reflected in this guide. The setup script is the single source of truth for PHP configuration.
+
+Link the PHP configuration files (adjust PHP version as needed):
+```bash
+# Link CLI configurations to Apache
+sudo ln -sf /etc/php/8.3/cli/conf.d/moodle.ini /etc/php/8.3/apache2/conf.d/moodle.ini
+sudo ln -sf /etc/php/8.3/cli/conf.d/20-xdebug.ini /etc/php/8.3/apache2/conf.d/20-xdebug.ini
+```
+
+Note: At the time of writing the setup script creates all PHP settings in `conf.d/` files, so linking them to Apache is sufficient - no need to modify `php.ini` directly.
+
+6. Restart Apache to apply changes:
 ```bash
 sudo service apache2 restart
 ```

@@ -82,16 +82,14 @@ for dir in moodle moodledata moodledata_phpu moodledata_bht; do
 done
 
 # configure php
-## conf.d/moodle.ini
-echo "max_input_vars = 5000" | sudo tee /etc/php/$PHP_VERSION/cli/conf.d/moodle.ini
-## cli/php.ini - configure for built-in server
-if grep -q "upload_max_filesize" /etc/php/$PHP_VERSION/cli/php.ini; then
-    sudo sed -i 's/^\(\s*;\?\s*\)upload_max_filesize\s*=\s*[0-9]*M/\upload_max_filesize = 2048M/' /etc/php/$PHP_VERSION/cli/php.ini
-else
-    echo "upload_max_filesize = 2048M" | sudo tee -a /etc/php/$PHP_VERSION/cli/php.ini
-fi
-sudo sed -i 's/^\(\s*;\?\s*\)post_max_size\s*=\s*[0-9]*M/\post_max_size = 2048M/' /etc/php/$PHP_VERSION/cli/php.ini
-sudo sed -i 's/^\(\s*;\?\s*\)memory_limit\s*=\s*[0-9]*M/\memory_limit = 256M/' /etc/php/$PHP_VERSION/cli/php.ini
+## Create moodle.ini with all PHP settings
+cat << EOF | sudo tee /etc/php/$PHP_VERSION/cli/conf.d/moodle.ini
+; Moodle-specific PHP configuration
+max_input_vars = 5000
+upload_max_filesize = 2048M
+post_max_size = 2048M
+memory_limit = 256M
+EOF
 
 
 echo "[XDebug]
