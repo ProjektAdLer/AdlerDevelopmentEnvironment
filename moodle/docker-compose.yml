@@ -21,19 +21,5 @@ services:
       interval: 15s
       timeout: 5s
 
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    environment:
-      PMA_HOSTS: db_moodle
-      PMA_PORT: 3306
-      PMA_USER: root
-      PMA_PASSWORD: ${_DB_ROOT_PW}
-    restart: unless-stopped
-    depends_on:
-      - db_moodle
-    ports:
-      - "8078:80"
-
-
 volumes:
   db_moodle_data:
