@@ -32,7 +32,7 @@ This section will describe how to set up and reset the development environment.
 After completing the installation above, start the development server:
 
 ```bash
-cd ~/moodle && php -S localhost:5080
+cd ~/moodle/moodle && php -S localhost:5080
 ```
 
 Press `Ctrl+C` to stop the server.
@@ -72,21 +72,3 @@ debug tools.
 - [Use Postgresql instead of MariaDB](doc/postgresql.md)
 - [Evaluation of different approaches to set up this Moodle development environment](doc/alternative_approaches.md)
 
-----
-
-php -S
-	in moodle ordner
-	php -S localhost:5080
-	
-	-> geht aber etwas langsam
-	
-caddy
-	benötigt php-fpm
-	systemctl stop caddy && systemctl disable caddy
-	Caddyfile in moodle ordner
-		:5080
-		root * /home/markus/moodle
-		#php_fastcgi 127.0.0.1:9000
-		php_fastcgi unix//run/php/php-fpm.sock
-		file_server
-	in moodle ordner: sudo caddy run

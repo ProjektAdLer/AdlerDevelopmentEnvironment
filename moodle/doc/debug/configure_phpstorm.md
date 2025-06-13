@@ -16,7 +16,7 @@
 - On the first incoming debugging connection, this entry should be created. If not, add it manually (Host: localhost, Port: 80, Debugger: Xdebug).
 - Check "Use path mappings (...)"
 - Add the following path mapping:  
-  `\\wsl$\\Ubuntu\\home\\<wsl username>\\moodle -> /home/<wsl username>/moodle`
+  `\\wsl$\\Ubuntu\\home\\<wsl username>\\moodle\\moodle -> /home/<wsl username>/moodle/moodle`
 
-4. Make sure that the moodle phpunit.xml file (...\moodle\phpunit.xml) is selected: 
+4. Make sure that the moodle phpunit.xml file (...\moodle\moodle\phpunit.xml) is selected: 
    Settings -> PHP -> Test Frameworks -> Default configuration file

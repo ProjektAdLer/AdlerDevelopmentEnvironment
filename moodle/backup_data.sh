@@ -1,6 +1,6 @@
 #!/bin/bash
 WSL_USER=$(whoami)
-MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)
+MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)/moodle
 
 if [ "$WSL_USER" == "root" ]; then
     echo "Script cannot be run as root. Exiting."

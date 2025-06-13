@@ -1,6 +1,6 @@
 #!/bin/bash
 WSL_USER=$(whoami)
-MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)
+MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)/moodle
 
 # Default value for DB_HOST
 DB_HOST="127.0.0.1"

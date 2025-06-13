@@ -7,7 +7,7 @@ All servers will serve Moodle at [http://localhost:5080](http://localhost:5080) 
 ## PHP Built-in Server (Default)
 
 ```bash
-cd ~/moodle && php -S localhost:5080
+cd ~/moodle/moodle && php -S localhost:5080
 ```
 
 ## Caddy Web Server
@@ -35,10 +35,10 @@ sudo systemctl stop caddy && sudo systemctl disable caddy
 
 3. Create a `Caddyfile` in your moodle directory:
 ```bash
-cd ~/moodle
+cd ~/moodle/moodle
 cat > Caddyfile << 'EOF'
 :5080
-root * <full path to your moodle folder eg /a/b/moodle/>
+root * <full path to your moodle/moodle folder eg /a/b/moodle/moodle/>
 php_fastcgi unix//run/php/php-fpm.sock
 file_server
 EOF
@@ -48,7 +48,7 @@ EOF
 
 Start Caddy from your moodle directory:
 ```bash
-cd ~/moodle
+cd ~/moodle/moodle
 sudo caddy run
 ```
 
@@ -92,7 +92,7 @@ sudo tee /etc/apache2/sites-available/moodle.conf << 'EOF'
 </VirtualHost>
 EOF
 ```
-Replace PATH_TO_MOODLE_FOLDER and PATH_TO_MOODLE_PARENT_FOLDER. First is the absolute path to the moodle folder and the second the full parth to the folder containing the directories moodle, moodledata, moodledata_*
+Replace PATH_TO_MOODLE_FOLDER and PATH_TO_MOODLE_PARENT_FOLDER. First is the absolute path to the moodle folder containing moodle itself and the second the full path to the folder containing the directories moodle, moodledata, moodledata_*
 
 2. Enable the virtual host:
 ```bash
@@ -107,7 +107,7 @@ echo "Listen 5080" | sudo tee -a /etc/apache2/ports.conf
 4. Set up proper permissions (using ACLs for shared access):
 ```bash
 WSL_USER=$(whoami)
-MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)
+MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)/moodle
 
 # Set ACLs to ensure both users have proper permissions
 sudo setfacl -m u:www-data:rx "$MOODLE_PARENT_DIRECTORY"

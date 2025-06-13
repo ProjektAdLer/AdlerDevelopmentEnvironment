@@ -9,7 +9,7 @@ MOODLE_TAG=v5.0.0
 DB_HOST="127.0.0.1"
 
 WSL_USER=$(whoami)
-MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)
+MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)/moodle
 HOST_IP=$(ip route | grep default | awk '{print $3}')
 
 if [ "$WSL_USER" == "root" ]; then
@@ -65,7 +65,8 @@ sudo sed -i 's/^# en_AU.UTF-8 UTF-8$/en_AU.UTF-8 UTF-8/' /etc/locale.gen   # har
 sudo locale-gen
 
 
-# create moodle folders
+# create moodle parent directory and subdirectories
+mkdir -p $MOODLE_PARENT_DIRECTORY
 mkdir $MOODLE_PARENT_DIRECTORY/moodledata $MOODLE_PARENT_DIRECTORY/moodledata_phpu $MOODLE_PARENT_DIRECTORY/moodledata_bht
 # download moodle to $MOODLE_PARENT_DIRECTORY/moodle
 git clone --depth 1 --branch $MOODLE_TAG https://github.com/moodle/moodle.git  $MOODLE_PARENT_DIRECTORY/moodle
