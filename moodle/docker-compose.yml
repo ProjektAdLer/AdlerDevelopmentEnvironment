@@ -12,6 +12,14 @@ services:
       MARIADB_DATABASE: ${_DB_MOODLE_NAME}
       MARIADB_CHARACTER_SET: utf8mb4
       MARIADB_COLLATE: utf8mb4_unicode_ci
+      # Conservative memory optimization - expect 30-60MB reduction
+      MARIADB_EXTRA_FLAGS: >-
+        --innodb-buffer-pool-size=32M
+        --max-connections=20
+        --sort-buffer-size=256K
+        --read-buffer-size=128K
+        --tmp-table-size=8M
+        --max-heap-table-size=8M
     volumes:
       - db_moodle_data:/bitnami/mariadb
     restart: unless-stopped
