@@ -162,7 +162,7 @@ fi
 # configure php
 # Get the default PHP version
 PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")
-confirm_system_change "Creating PHP configuration files for Moodle and XDebug in /etc/php/$PHP_VERSION/"
+confirm_system_change "Creating PHP configuration files for Moodle and XDebug in /etc/php/$PHP_VERSION/cli/conf.d/"
 ## Create moodle.ini with all PHP settings
 cat << EOF | sudo tee /etc/php/$PHP_VERSION/cli/conf.d/moodle.ini
 ; Moodle-specific PHP configuration
@@ -170,6 +170,7 @@ max_input_vars = 5000
 upload_max_filesize = 2048M
 post_max_size = 2048M
 memory_limit = 256M
+zlib.output_compression = On
 EOF
 
 
@@ -210,9 +211,9 @@ echo "
 // \$CFG->phpunit_profilingenabled = true; // optional to profile PHPUnit runs.
 
 // Force a debugging mode regardless the settings in the site administration
-@error_reporting(E_ALL | E_STRICT); // NOT FOR PRODUCTION SERVERS!
+@error_reporting(E_ALL); // NOT FOR PRODUCTION SERVERS!
 @ini_set('display_errors', '1');    // NOT FOR PRODUCTION SERVERS!
-\$CFG->debug = (E_ALL | E_STRICT);   // === DEBUG_DEVELOPER - NOT FOR PRODUCTION SERVERS!
+\$CFG->debug = (E_ALL);   // === DEBUG_DEVELOPER - NOT FOR PRODUCTION SERVERS!
 \$CFG->debugdisplay = 1;             // NOT FOR PRODUCTION SERVERS!
 
 // Force result of checks used to determine whether a site is considered \"public\" or not (such as for site registration).
@@ -236,17 +237,16 @@ require_once('$MOODLE_PARENT_DIRECTORY/moodle/moodle-browser-config/init.php');
 require_once(__DIR__ . '/lib/setup.php'); // Do not edit
 " >> $MOODLE_PARENT_DIRECTORY/moodle/config.php
 
-cd $MOODLE_PARENT_DIRECTORY/moodle
 # install composer dependencies
-composer i
+composer i -d $MOODLE_PARENT_DIRECTORY/moodle --no-interaction
 
 #clone behat test browser config repo
-git clone https://github.com/andrewnicols/moodle-browser-config
+git clone https://github.com/andrewnicols/moodle-browser-config $MOODLE_PARENT_DIRECTORY/moodle/moodle-browser-config
 
 # Create start script from template
-cp ../start.sh.template start.sh
-sed -i "s/REPLACE_PORT/$MOODLE_PORT/g" start.sh
-chmod +x start.sh
+cp start.sh.template $MOODLE_PARENT_DIRECTORY/moodle/start.sh
+sed -i "s/REPLACE_PORT/$MOODLE_PORT/g" $MOODLE_PARENT_DIRECTORY/moodle/start.sh
+chmod +x $MOODLE_PARENT_DIRECTORY/moodle/start.sh
 
 # setup test environments
 echo "Run the following commands to setup the test environments:"

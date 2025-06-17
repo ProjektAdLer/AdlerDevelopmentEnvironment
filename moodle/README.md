@@ -28,7 +28,8 @@ This section will describe how to set up and reset the development environment.
 
 ## Start Development Server
 
-**Note:** The PHP built-in server (`php -S`) is slower compared to a full web server. For better performance, consider using a full web server like Caddy or Apache. See [Alternative Web Server Setup](doc/webserver_setup.md) for detailed instructions.
+> [!NOTE]
+> The PHP built-in server (`php -S`) is slower compared to a full web server. For better performance, consider using a full web server like Caddy or Apache. See [Alternative Web Server Setup](doc/webserver_setup.md) for detailed instructions. PHP built-in server was chosen because other servers are more complex to set up and potential require more system modifiacations.
 
 After completing the installation above, start the development server:
 
