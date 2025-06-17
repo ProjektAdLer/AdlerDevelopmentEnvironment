@@ -60,7 +60,6 @@ show_system_modifications_summary() {
 
 # configuration
 MOODLE_PORT=5080  # this is the port the moodle is available at
-PHP_VERSION=8.3
 MOODLE_TAG=v5.0.0
 
 # Default value for DB_HOST
@@ -139,12 +138,10 @@ if [ "$SKIP_DOCKER" = false ]; then
 fi
 
 # update package list and upgrade packages
-confirm_system_change "Installing/updating system packages (PHP $PHP_VERSION, MariaDB client, Composer, etc.)"
+confirm_system_change "Installing/updating system packages (PHP, MariaDB client, Composer, etc.)"
 sudo apt update
-sudo apt dist-upgrade -y
-
-# install dependencies
-sudo apt install -y acl php$PHP_VERSION php$PHP_VERSION-curl php$PHP_VERSION-zip composer php$PHP_VERSION-gd php$PHP_VERSION-dom php$PHP_VERSION-xml php$PHP_VERSION-mysqli php$PHP_VERSION-soap php$PHP_VERSION-xmlrpc php$PHP_VERSION-intl php$PHP_VERSION-xdebug php$PHP_VERSION-pgsql php$PHP_VERSION-tidy mariadb-client default-jre zstd
+# default-jre for behat tests
+sudo apt install -y php php-curl php-zip composer php-gd php-dom php-xml php-mysqli php-soap php-xmlrpc php-intl php-xdebug mariadb-client default-jre zstd
 
 # install locales
 confirm_system_change "Configuring system locales (de_DE.UTF-8, en_AU.UTF-8)"
@@ -167,6 +164,8 @@ else
 fi
 
 # configure php
+# Get the default PHP version
+PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")
 confirm_system_change "Creating PHP configuration files for Moodle and XDebug in /etc/php/$PHP_VERSION/"
 ## Create moodle.ini with all PHP settings
 cat << EOF | sudo tee /etc/php/$PHP_VERSION/cli/conf.d/moodle.ini
