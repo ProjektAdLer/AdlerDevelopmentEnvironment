@@ -72,7 +72,7 @@ set +o allexport
 # check if moodle is already installed
 if [ -f $MOODLE_PARENT_DIRECTORY/moodle/config.php ]
 then
-    echo "Moodle is already installed. Please run reset_data.sh first. If you want to restore a previous moodle installation, do it after running this script."
+    echo "Moodle is already installed. You have to reset your environment first. See documentation. If you want to restore a previous moodle installation, do it after running this script."
     exit 1
 fi
 
@@ -115,14 +115,6 @@ if [ "$SKIP_DOCKER" = false ]; then
 else
     echo "Skipping Docker database setup. Assuming local MariaDB is already running."
 fi
-
-# setup permissions for moodle directories
-# Set ACLs to ensure the current user has read, write, and execute permissions on the directory and its subdirectories
-sudo setfacl -m u:$WSL_USER:rx "$MOODLE_PARENT_DIRECTORY"
-for dir in moodle moodledata moodledata_phpu moodledata_bht; do
-    sudo setfacl -R -m u:$WSL_USER:rwx,m::rwx "$MOODLE_PARENT_DIRECTORY/$dir"
-    sudo setfacl -R -d -m u:$WSL_USER:rwx,m::rwx "$MOODLE_PARENT_DIRECTORY/$dir"
-done
 
 # configure php
 ## Create moodle.ini with all PHP settings
@@ -198,17 +190,17 @@ require_once('$MOODLE_PARENT_DIRECTORY/moodle/moodle-browser-config/init.php');
 require_once(__DIR__ . '/lib/setup.php'); // Do not edit
 " >> $MOODLE_PARENT_DIRECTORY/moodle/config.php
 
-# configure cron job
-echo adding cron job
-echo "*/10 * * * * $WSL_USER php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/cron.php > /dev/null 2>> $MOODLE_PARENT_DIRECTORY/moodledata/moodle-cron.log" | sudo tee /etc/cron.d/moodle
-
-
 cd $MOODLE_PARENT_DIRECTORY/moodle
 # install composer dependencies
 composer i
 
 #clone behat test browser config repo
 git clone https://github.com/andrewnicols/moodle-browser-config
+
+# Create start script from template
+cp ../start.sh.template start.sh
+sed -i "s/REPLACE_PORT/$MOODLE_PORT/g" start.sh
+chmod +x start.sh
 
 # setup test environments
 echo "Run the following commands to setup the test environments:"
@@ -223,7 +215,10 @@ else
 fi
 echo "Host IP (for IDE config): $HOST_IP"
 echo ""
-echo "Setup complete! To start Moodle with PHP built-in server, run:"
+echo "Setup complete! To start Moodle with PHP built-in server and cron jobs, run:"
+echo "cd $MOODLE_PARENT_DIRECTORY/moodle && ./start.sh"
+echo ""
+echo "Or to start manually (without automatic cron jobs):"
 echo "cd $MOODLE_PARENT_DIRECTORY/moodle && php -S localhost:$MOODLE_PORT"
 echo ""
 echo "Moodle will be available at http://localhost:$MOODLE_PORT"
