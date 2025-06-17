@@ -137,7 +137,7 @@ fi
 confirm_system_change "Installing/updating system packages (PHP, MariaDB client, Composer, etc.)"
 sudo apt update
 # default-jre for behat tests
-sudo apt install -y php php-curl php-zip composer php-gd php-dom php-xml php-mysqli php-soap php-xmlrpc php-intl php-xdebug mariadb-client default-jre zstd
+sudo apt install -y php php-curl php-zip composer php-gd php-dom php-xml php-mysqli php-soap php-xmlrpc php-intl php-xdebug mariadb-client default-jre zstd locales
 
 # install locales
 confirm_system_change "Configuring system locales (de_DE.UTF-8, en_AU.UTF-8)"
@@ -156,7 +156,7 @@ git clone --depth 1 --branch $MOODLE_TAG https://github.com/moodle/moodle.git  $
 if [ "$SKIP_DOCKER" = false ]; then
     docker compose up -d --wait
 else
-    echo "Skipping Docker database setup. Assuming local MariaDB is already running."
+    echo "Skipping Docker database setup. Using external MariaDB server at $DB_HOST:$DB_PORT"
 fi
 
 # configure php
