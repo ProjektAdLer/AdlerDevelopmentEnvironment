@@ -8,14 +8,55 @@ show_usage() {
     echo "  -d, --dbhost HOST      Set database host (default: 127.0.0.1)"
     echo "  -p, --dbport PORT      Set database port (default: 3312 for Docker, 3306 for local)"
     echo "  -s, --skip-docker      Skip Docker setup and use another MariaDB server. Set credentials in .env file."
+    echo "  -y, --yes              Auto-accept all system changes without prompting"
     echo "  -h, --help             Show this help message"
     echo ""
     echo "Examples:"
     echo "  $0                     # Default setup with Docker MariaDB"
     echo "  $0 --skip-docker       # Do not start mariaDB in Docker"
     echo "  $0 -d 192.168.1.100 -s # Use existing MariaDB on 192.168.1.100 and skip Docker setup"
+    echo "  $0 -y                  # Auto-accept all system modifications"
     exit 0
 }
+
+# Function to confirm system changes
+confirm_system_change() {
+    local message="$1"
+    
+    echo ""
+    echo "⚠️  SYSTEM MODIFICATION REQUIRED"
+    echo "   $message"
+    echo ""
+    
+    if [ "$AUTO_ACCEPT" = true ]; then
+        echo "Auto-accepting system change (--yes flag provided)"
+        COMPLETED_MODIFICATIONS+=("$message")
+        return 0
+    fi
+    
+    read -p "Do you want to proceed with this system change? [y/N]: " response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        echo "System change declined. Exiting."
+        show_system_modifications_summary
+        exit 1
+    fi
+    
+    COMPLETED_MODIFICATIONS+=("$message")
+}
+
+# Function to show summary of system modifications
+show_system_modifications_summary() {
+    echo ""
+    if [ ${#COMPLETED_MODIFICATIONS[@]} -eq 0 ]; then
+        echo "No system modifications were made."
+    else
+        echo "The following changes were made to the system:"
+        for modification in "${COMPLETED_MODIFICATIONS[@]}"; do
+            echo "- $modification"
+        done
+    fi
+}
+
 
 # configuration
 MOODLE_PORT=5080  # this is the port the moodle is available at
@@ -26,8 +67,13 @@ MOODLE_TAG=v5.0.0
 DB_HOST="127.0.0.1"
 # Default value for skipping Docker
 SKIP_DOCKER=false
+# Default value for auto-accepting system changes
+AUTO_ACCEPT=false
 # Set default DB port based on Docker usage (will be updated after parsing arguments)
 DB_PORT=""
+
+# Array to track completed system modifications
+COMPLETED_MODIFICATIONS=()
 
 WSL_USER=$(whoami)
 MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)/moodle
@@ -44,6 +90,7 @@ while [[ "$#" -gt 0 ]]; do
         --dbhost|-d) DB_HOST="$2"; shift ;;
         --dbport|-p) DB_PORT="$2"; shift ;;
         --skip-docker|-s) SKIP_DOCKER=true ;;
+        --yes|-y) AUTO_ACCEPT=true ;;
         --help|-h) show_usage ;;
         *) ;;
     esac
@@ -79,6 +126,7 @@ fi
 # check docker is available (skip if --skip-docker is used)
 if [ "$SKIP_DOCKER" = false ]; then
     # grant docker access to the current user
+    confirm_system_change "Adding user '$WSL_USER' to 'docker' group for Docker access"
     sudo usermod -aG docker $WSL_USER
 
     if ! docker &> /dev/null
@@ -91,6 +139,7 @@ if [ "$SKIP_DOCKER" = false ]; then
 fi
 
 # update package list and upgrade packages
+confirm_system_change "Installing/updating system packages (PHP $PHP_VERSION, MariaDB client, Composer, etc.)"
 sudo apt update
 sudo apt dist-upgrade -y
 
@@ -98,6 +147,7 @@ sudo apt dist-upgrade -y
 sudo apt install -y acl php$PHP_VERSION php$PHP_VERSION-curl php$PHP_VERSION-zip composer php$PHP_VERSION-gd php$PHP_VERSION-dom php$PHP_VERSION-xml php$PHP_VERSION-mysqli php$PHP_VERSION-soap php$PHP_VERSION-xmlrpc php$PHP_VERSION-intl php$PHP_VERSION-xdebug php$PHP_VERSION-pgsql php$PHP_VERSION-tidy mariadb-client default-jre zstd
 
 # install locales
+confirm_system_change "Configuring system locales (de_DE.UTF-8, en_AU.UTF-8)"
 sudo sed -i 's/^# de_DE.UTF-8 UTF-8$/de_DE.UTF-8 UTF-8/' /etc/locale.gen
 sudo sed -i 's/^# en_AU.UTF-8 UTF-8$/en_AU.UTF-8 UTF-8/' /etc/locale.gen   # hardcoded for some testing stuff in moodle
 sudo locale-gen
@@ -117,6 +167,7 @@ else
 fi
 
 # configure php
+confirm_system_change "Creating PHP configuration files for Moodle and XDebug in /etc/php/$PHP_VERSION/"
 ## Create moodle.ini with all PHP settings
 cat << EOF | sudo tee /etc/php/$PHP_VERSION/cli/conf.d/moodle.ini
 ; Moodle-specific PHP configuration
@@ -222,3 +273,6 @@ echo "Or to start manually (without automatic cron jobs):"
 echo "cd $MOODLE_PARENT_DIRECTORY/moodle && php -S localhost:$MOODLE_PORT"
 echo ""
 echo "Moodle will be available at http://localhost:$MOODLE_PORT"
+
+# Show summary of system modifications
+show_system_modifications_summary
