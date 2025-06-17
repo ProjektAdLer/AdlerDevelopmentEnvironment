@@ -124,13 +124,9 @@ fi
 
 # check docker is available (skip if --skip-docker is used)
 if [ "$SKIP_DOCKER" = false ]; then
-    # grant docker access to the current user
-    confirm_system_change "Adding user '$WSL_USER' to 'docker' group for Docker access"
-    sudo usermod -aG docker $WSL_USER
-
     if ! docker &> /dev/null
     then
-        echo "Docker is not working as expected."
+        echo "Docker is not working as expected. Is $WSL_USER allowed to run Docker commands? If not potenetially adding the user to the docker group might help."
         docker
         exit 1
     fi
