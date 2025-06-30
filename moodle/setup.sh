@@ -1,6 +1,81 @@
 #!/bin/bash
+
+# Show usage information
+show_usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  -d, --dbhost HOST      Set database host (default: 127.0.0.1)"
+    echo "  -p, --dbport PORT      Set database port (default: 3312 for Docker, 3306 for local)"
+    echo "  -s, --skip-docker      Skip Docker setup and use another MariaDB server. Set credentials in .env file."
+    echo "  -y, --yes              Auto-accept all system changes without prompting"
+    echo "  -h, --help             Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                     # Default setup with Docker MariaDB"
+    echo "  $0 --skip-docker       # Do not start mariaDB in Docker"
+    echo "  $0 -d 192.168.1.100 -s # Use existing MariaDB on 192.168.1.100 and skip Docker setup"
+    echo "  $0 -y                  # Auto-accept all system modifications"
+    exit 0
+}
+
+# Function to confirm system changes
+confirm_system_change() {
+    local message="$1"
+    
+    echo ""
+    echo "⚠️  SYSTEM MODIFICATION REQUIRED"
+    echo "   $message"
+    echo ""
+    
+    if [ "$AUTO_ACCEPT" = true ]; then
+        echo "Auto-accepting system change (--yes flag provided)"
+        COMPLETED_MODIFICATIONS+=("$message")
+        return 0
+    fi
+    
+    read -p "Do you want to proceed with this system change? [y/N]: " response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        echo "System change declined. Exiting."
+        show_system_modifications_summary
+        exit 1
+    fi
+    
+    COMPLETED_MODIFICATIONS+=("$message")
+}
+
+# Function to show summary of system modifications
+show_system_modifications_summary() {
+    echo ""
+    if [ ${#COMPLETED_MODIFICATIONS[@]} -eq 0 ]; then
+        echo "No system modifications were made."
+    else
+        echo "The following changes were made to the system:"
+        for modification in "${COMPLETED_MODIFICATIONS[@]}"; do
+            echo "- $modification"
+        done
+    fi
+}
+
+
+# configuration
+MOODLE_PORT=5080  # this is the port the moodle is available at
+MOODLE_TAG=v5.0.0
+
+# Default value for DB_HOST
+DB_HOST="127.0.0.1"
+# Default value for skipping Docker
+SKIP_DOCKER=false
+# Default value for auto-accepting system changes
+AUTO_ACCEPT=false
+# Set default DB port based on Docker usage (will be updated after parsing arguments)
+DB_PORT=""
+
+# Array to track completed system modifications
+COMPLETED_MODIFICATIONS=()
+
 WSL_USER=$(whoami)
-MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)
+MOODLE_PARENT_DIRECTORY=$(getent passwd $WSL_USER | cut -d: -f6)/moodle
 HOST_IP=$(ip route | grep default | awk '{print $3}')
 
 if [ "$WSL_USER" == "root" ]; then
@@ -8,23 +83,30 @@ if [ "$WSL_USER" == "root" ]; then
     exit 1
 fi
 
-# configuration
-APACHE_VHOST_PORT=5080  # this is the port the moodle is available at
-PHP_VERSION=8.3
-MOODLE_TAG=v5.0.0
-
-# Default value for DB_HOST
-DB_HOST="127.0.0.1"
-
 # Parse command line arguments for DB_HOST
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --dbhost|-d) DB_HOST="$2"; shift ;;
+        --dbport|-p) DB_PORT="$2"; shift ;;
+        --skip-docker|-s) SKIP_DOCKER=true ;;
+        --yes|-y) AUTO_ACCEPT=true ;;
+        --help|-h) show_usage ;;
         *) ;;
     esac
     shift
 done
 echo "DB_HOST is set to $DB_HOST"
+echo "SKIP_DOCKER is set to $SKIP_DOCKER"
+
+# Set DB_PORT based on Docker usage
+if [ "$SKIP_DOCKER" = true ]; then
+    DB_PORT=${DB_PORT:-3306}  # Default MariaDB port for local installation
+    echo "Using local MariaDB setup (Docker will be skipped)"
+else
+    DB_PORT=${DB_PORT:-3312}  # Docker compose port
+    echo "Using Docker-based MariaDB setup"
+fi
+echo "DB_PORT is set to $DB_PORT"
 
 cd "$(dirname "$0")"
 
@@ -36,78 +118,60 @@ set +o allexport
 # check if moodle is already installed
 if [ -f $MOODLE_PARENT_DIRECTORY/moodle/config.php ]
 then
-    echo "Moodle is already installed. Please run reset_data.sh first. If you want to restore a previous moodle installation, do it after running this script."
+    echo "Moodle is already installed. You have to reset your environment first. See documentation. If you want to restore a previous moodle installation, do it after running this script."
     exit 1
 fi
 
-# check docker is available
-if ! docker &> /dev/null
-then
-    echo "Docker is not working as expected."
-    docker
-    exit 1
+# check docker is available (skip if --skip-docker is used)
+if [ "$SKIP_DOCKER" = false ]; then
+    if ! docker &> /dev/null
+    then
+        echo "Docker is not working as expected. Is $WSL_USER allowed to run Docker commands? If not potenetially adding the user to the docker group might help."
+        docker
+        exit 1
+    fi
+    
 fi
-
-# grant docker access to the current user
-sudo usermod -aG docker $WSL_USER
 
 # update package list and upgrade packages
+confirm_system_change "Installing/updating system packages (PHP, MariaDB client, Composer, etc.)"
 sudo apt update
-sudo apt dist-upgrade -y
-
-# install dependencies
-sudo apt install -y acl apache2 php$PHP_VERSION php$PHP_VERSION-curl php$PHP_VERSION-zip composer php$PHP_VERSION-gd php$PHP_VERSION-dom php$PHP_VERSION-xml php$PHP_VERSION-mysqli php$PHP_VERSION-soap php$PHP_VERSION-xmlrpc php$PHP_VERSION-intl php$PHP_VERSION-xdebug php$PHP_VERSION-pgsql php$PHP_VERSION-tidy mariadb-client default-jre zstd
+# default-jre for behat tests
+sudo apt install -y php php-curl php-zip composer php-gd php-dom php-xml php-mysqli php-soap php-xmlrpc php-intl php-xdebug mariadb-client default-jre zstd locales
 
 # install locales
+confirm_system_change "Configuring system locales (de_DE.UTF-8, en_AU.UTF-8)"
 sudo sed -i 's/^# de_DE.UTF-8 UTF-8$/de_DE.UTF-8 UTF-8/' /etc/locale.gen
 sudo sed -i 's/^# en_AU.UTF-8 UTF-8$/en_AU.UTF-8 UTF-8/' /etc/locale.gen   # hardcoded for some testing stuff in moodle
 sudo locale-gen
 
 
-# create moodle folders
+# create moodle parent directory and subdirectories
+mkdir -p $MOODLE_PARENT_DIRECTORY
 mkdir $MOODLE_PARENT_DIRECTORY/moodledata $MOODLE_PARENT_DIRECTORY/moodledata_phpu $MOODLE_PARENT_DIRECTORY/moodledata_bht
 # download moodle to $MOODLE_PARENT_DIRECTORY/moodle
 git clone --depth 1 --branch $MOODLE_TAG https://github.com/moodle/moodle.git  $MOODLE_PARENT_DIRECTORY/moodle
 
 # setup database
-sudo --preserve-env docker compose up -d --wait
-
-# configure apache
-# Create a new virtual host configuration file
-echo "<VirtualHost *:$APACHE_VHOST_PORT>
-    DocumentRoot $MOODLE_PARENT_DIRECTORY/moodle
-    <Directory $MOODLE_PARENT_DIRECTORY>
-        Options Indexes FollowSymLinks
-        AllowOverride All
-        Require all granted
-    </Directory>
-    ErrorLog \${APACHE_LOG_DIR}/moodle_error.log
-    CustomLog \${APACHE_LOG_DIR}/moodle_access.log combined
-</VirtualHost>" | sudo tee /etc/apache2/sites-available/moodle.conf
-# Enable the new virtual host configuration
-sudo a2ensite moodle.conf
-# Add the custom port to ports.conf
-echo "Listen $APACHE_VHOST_PORT" | sudo tee -a /etc/apache2/ports.conf
-# Change user and group of apache to the user of the WSL
-## Set ACLs to ensure both users have read, write, and execute permissions on the directory, its subdirectories, and existing files
-sudo setfacl -m u:www-data:rx "$MOODLE_PARENT_DIRECTORY"
-for dir in moodle moodledata moodledata_phpu moodledata_bht; do
-    sudo setfacl -R -m u:$WSL_USER:rwx,u:www-data:rwx,m::rwx "$MOODLE_PARENT_DIRECTORY/$dir"
-    sudo setfacl -R -d -m u:$WSL_USER:rwx,u:www-data:rwx,m::rwx "$MOODLE_PARENT_DIRECTORY/$dir"
-done
+if [ "$SKIP_DOCKER" = false ]; then
+    docker compose up -d --wait
+else
+    echo "Skipping Docker database setup. Using external MariaDB server at $DB_HOST:$DB_PORT"
+fi
 
 # configure php
-## conf.d/moodle.ini
-echo "max_input_vars = 5000" | sudo tee /etc/php/$PHP_VERSION/cli/conf.d/moodle.ini
-sudo ln -s  /etc/php/$PHP_VERSION/cli/conf.d/moodle.ini /etc/php/$PHP_VERSION/apache2/conf.d/moodle.ini
-## apache/php.ini
-if grep -q "upload_max_filesize" /etc/php/$PHP_VERSION/apache2/php.ini; then
-    sudo sed -i 's/^\(\s*;\?\s*\)upload_max_filesize\s*=\s*[0-9]*M/\upload_max_filesize = 2048M/' /etc/php/$PHP_VERSION/apache2/php.ini
-else
-    echo "upload_max_filesize = 2048M" | sudo tee -a /etc/php/$PHP_VERSION/apache2/php.ini
-fi
-sudo sed -i 's/^\(\s*;\?\s*\)post_max_size\s*=\s*[0-9]*M/\post_max_size = 2048M/' /etc/php/$PHP_VERSION/apache2/php.ini
-sudo sed -i 's/^\(\s*;\?\s*\)memory_limit\s*=\s*[0-9]*M/\memory_limit = 256M/' /etc/php/$PHP_VERSION/apache2/php.ini
+# Get the default PHP version
+PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")
+confirm_system_change "Creating PHP configuration files for Moodle and XDebug in /etc/php/$PHP_VERSION/cli/conf.d/"
+## Create moodle.ini with all PHP settings
+cat << EOF | sudo tee /etc/php/$PHP_VERSION/cli/conf.d/moodle.ini
+; Moodle-specific PHP configuration
+max_input_vars = 5000
+upload_max_filesize = 2048M
+post_max_size = 2048M
+memory_limit = 256M
+zlib.output_compression = On
+EOF
 
 
 echo "[XDebug]
@@ -118,7 +182,7 @@ xdebug.mode=debug
 ;xdebug.mode=develop
 xdebug.client_port=9000
 
-; host ip adress of wsl network adapter
+; host ip address of wsl network adapter
 xdebug.client_host=$HOST_IP
 
 ; idekey value is specific to PhpStorm
@@ -127,15 +191,10 @@ xdebug.idekey=phpstorm
 // always enabling debugging slows down the web interface significantly.
 // Instead prefer to enable debugging only when needed. See README.md for more information.
 ;xdebug.start_with_request=true
-" | sudo tee /etc/php/$PHP_VERSION/apache2/conf.d/20-xdebug.ini
-sudo rm /etc/php/$PHP_VERSION/cli/conf.d/20-xdebug.ini
-sudo ln -s  /etc/php/$PHP_VERSION/apache2/conf.d/20-xdebug.ini /etc/php/$PHP_VERSION/cli/conf.d/20-xdebug.ini
-
-# restart apache to apply updated config
-sudo service apache2 restart
+" | sudo tee /etc/php/$PHP_VERSION/cli/conf.d/20-xdebug.ini
 
 # install moodle
-php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/install.php --lang=DE --wwwroot=http://localhost:$APACHE_VHOST_PORT --dataroot=$MOODLE_PARENT_DIRECTORY/moodledata --dbtype=mariadb --dbhost=$DB_HOST --dbport=3312 --dbuser=${_DB_MOODLE_USER} --dbpass=${_DB_MOODLE_PW} --dbname=${_DB_MOODLE_NAME} --fullname=fullname --shortname=shortname --adminuser=${_MOODLE_USER} --adminpass=${_MOODLE_PW} --adminemail=admin@blub.blub --supportemail=admin@blub.blub --non-interactive --agree-license
+php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/install.php --lang=DE --wwwroot=http://localhost:$MOODLE_PORT --dataroot=$MOODLE_PARENT_DIRECTORY/moodledata --dbtype=mariadb --dbhost=$DB_HOST --dbport=$DB_PORT --dbuser=${_DB_MOODLE_USER} --dbpass=${_DB_MOODLE_PW} --dbname=${_DB_MOODLE_NAME} --fullname=fullname --shortname=shortname --adminuser=${_MOODLE_ADMIN_USER} --adminpass=${_MOODLE_ADMIN_PW} --adminemail=admin@blub.blub --supportemail=admin@blub.blub --non-interactive --agree-license
 
 # moodle config.php
 # remove the require_once line as it has to be at the end of the file
@@ -152,9 +211,9 @@ echo "
 // \$CFG->phpunit_profilingenabled = true; // optional to profile PHPUnit runs.
 
 // Force a debugging mode regardless the settings in the site administration
-@error_reporting(E_ALL | E_STRICT); // NOT FOR PRODUCTION SERVERS!
+@error_reporting(E_ALL); // NOT FOR PRODUCTION SERVERS!
 @ini_set('display_errors', '1');    // NOT FOR PRODUCTION SERVERS!
-\$CFG->debug = (E_ALL | E_STRICT);   // === DEBUG_DEVELOPER - NOT FOR PRODUCTION SERVERS!
+\$CFG->debug = (E_ALL);   // === DEBUG_DEVELOPER - NOT FOR PRODUCTION SERVERS!
 \$CFG->debugdisplay = 1;             // NOT FOR PRODUCTION SERVERS!
 
 // Force result of checks used to determine whether a site is considered \"public\" or not (such as for site registration).
@@ -170,7 +229,7 @@ echo "
 //=========================================================================
 // Behat test site needs a unique www root, data directory and database prefix:
 //
-\$CFG->behat_wwwroot = 'http://127.0.0.1:$APACHE_VHOST_PORT';
+\$CFG->behat_wwwroot = 'http://127.0.0.1:$MOODLE_PORT';
 \$CFG->behat_prefix = 'bht_';
 \$CFG->behat_dataroot = '$MOODLE_PARENT_DIRECTORY/moodledata_bht';
 
@@ -178,27 +237,37 @@ require_once('$MOODLE_PARENT_DIRECTORY/moodle/moodle-browser-config/init.php');
 require_once(__DIR__ . '/lib/setup.php'); // Do not edit
 " >> $MOODLE_PARENT_DIRECTORY/moodle/config.php
 
-# configure cron job
-echo adding cron job
-echo "*/10 * * * * www-data php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/cron.php > /dev/null 2>> $MOODLE_PARENT_DIRECTORY/moodledata/moodle-cron.log" | sudo tee /etc/cron.d/moodle
-
-
-cd $MOODLE_PARENT_DIRECTORY/moodle
 # install composer dependencies
-composer i
+composer i -d $MOODLE_PARENT_DIRECTORY/moodle --no-interaction
 
 #clone behat test browser config repo
-git clone https://github.com/andrewnicols/moodle-browser-config
+git clone https://github.com/andrewnicols/moodle-browser-config $MOODLE_PARENT_DIRECTORY/moodle/moodle-browser-config
+
+# Create start script from template
+cp start.sh.template $MOODLE_PARENT_DIRECTORY/moodle/start.sh
+sed -i "s/REPLACE_PORT/$MOODLE_PORT/g" $MOODLE_PARENT_DIRECTORY/moodle/start.sh
+chmod +x $MOODLE_PARENT_DIRECTORY/moodle/start.sh
 
 # setup test environments
 echo "Run the following commands to setup the test environments:"
 echo php admin/tool/phpunit/cli/init.php
 echo php admin/tool/behat/cli/init.php
 
-echo moodle login data: username: ${_MOODLE_USER} password: ${_MOODLE_PW}
-echo db root password: ${_DB_ROOT_PW}
+echo moodle login data: username: ${_MOODLE_ADMIN_USER} password: ${_MOODLE_ADMIN_PW}
+if [ "$SKIP_DOCKER" = false ]; then
+    echo db root password: ${_DB_ROOT_PW}
+else
+    echo "Using local MariaDB database on $DB_HOST:$DB_PORT"
+fi
 echo "Host IP (for IDE config): $HOST_IP"
-echo "Moodle is available at http://localhost:$APACHE_VHOST_PORT"
+echo ""
+echo "Setup complete! To start Moodle with PHP built-in server and cron jobs, run:"
+echo "cd $MOODLE_PARENT_DIRECTORY/moodle && ./start.sh"
+echo ""
+echo "Or to start manually (without automatic cron jobs):"
+echo "cd $MOODLE_PARENT_DIRECTORY/moodle && php -S localhost:$MOODLE_PORT"
+echo ""
+echo "Moodle will be available at http://localhost:$MOODLE_PORT"
 
-
-
+# Show summary of system modifications
+show_system_modifications_summary

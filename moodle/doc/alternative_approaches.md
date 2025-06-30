@@ -31,7 +31,7 @@ These are my notes for the docker-compose approach. It never fully worked. Just 
 #### setup PHPStorm
 1) setup docker: Settings -> Build, Execution, Deployment -> Docker -> add new
 - choose WSL
-- add Mapping: /opt/bitnami/moodle (Virtual machine path) -> /home/markus/moodle (Local path)
+- add Mapping: /opt/bitnami/moodle (Virtual machine path) -> /home/markus/moodle/moodle (Local path)
 
 2) setup PHP interpreter: Settings -> PHP -> CLI interpreter -> 2 dots ->
 - add new -> From docker, ...
@@ -122,7 +122,7 @@ services:
   #    image: debian
   #    command: sleep infinity
   #    volumes:
-  #      - /home/markus/moodle:/moodle
+  #      - /home/markus/moodle/moodle:/moodle
   moodle:
     build:
       context: ..
@@ -147,7 +147,7 @@ services:
       DEVELOP_DONT_INSTALL_PLUGINS: true
     volumes:
       - moodle_moodle:/bitnami/moodle
-      #      - /home/markus/moodle:/bitnami/moodle
+      #      - /home/markus/moodle/moodle:/bitnami/moodle
       - moodle_moodledata:/bitnami/moodledata
       - moodle_moodledata_phpu:/bitnami/moodledata_phpu
     depends_on:

@@ -32,11 +32,11 @@ Read the [Moodle setup guide for Behat](https://moodledev.io/general/development
 
 ## Running Tests
 
-1) navigate to the moodle root directory `cd /home/<wsl username>/moodle`
+1) navigate to the moodle root directory `cd /home/<wsl username>/moodle/moodle`
 2) start Selenium: `PATH=./:$PATH java -jar <filename of the downloaded selenium file> standalone`
 3) in a new terminal window, run the following command to start the Behat test:
     ```bash
-    vendor/bin/behat --config /home/<wsl username>/moodledata_bht/behatrun/behat/behat.yml --profile chrome
+    vendor/bin/behat --config /home/<wsl username>/moodle/moodledata_bht/behatrun/behat/behat.yml --profile chrome
     ```
    This is just for testing, it will run all moodle tests. After some tests a Chrome window will open (not all tests actually need
    a browser). If this happens the tests are running correctly.

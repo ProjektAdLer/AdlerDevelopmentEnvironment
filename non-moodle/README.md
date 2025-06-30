@@ -99,3 +99,10 @@ Moodle erfordert Docker internen (Backend) und externen (Docker-Host) Zugriff ü
 Die deployment Konfiguration müsste jedes Mal, wenn sich die IP ändert, angepasst werden. Außerdem müsste Moodle jedes 
 Mal auf die neue IP "migriert" werden ([siehe Moodle-Guide](https://docs.moodle.org/500/de/Moodle_Migration), [englischer Guide](https://docs.moodle.org/500/en/Moodle_migration).
 Der Docker host_gateway (standardmäßig 127.10.0.1) könnte gut funktionieren, aber nur für localhost, nicht für LAN.
+
+## LAN Modus
+
+Nach einigem ausprobieren ist mein aktueller Stand, dass ein praktikabler LAN Einsatz nur über folgende Ansätze möglich ist:
+- Bei statischer IP und Nutzung nur im selben Netzwerk: Hostsystem-IP als DOMAIN setzen.
+- Definieren einer Domain und diese in der Hosts-Datei jedes Clients setzen. Ändert sich die IP des AdLer-Servers, muss die Hosts-Datei jedes Clients aktualisiert werden.
+- Definieren einer Domain und diese in einem DNS-Server eintragen, welcher von allen Clients genutzt wird. Manche Router bieten ggf diese Funktionalität an. Ändert sich die IP des AdLer-Servers, muss der DNS-Eintrag aktualisiert werden.

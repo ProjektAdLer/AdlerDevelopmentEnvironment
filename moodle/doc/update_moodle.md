@@ -9,7 +9,7 @@ with the Update step.
    Especially because this is an unsupported way to update moodle, it is important to create a full backup before updating,
    including the moodle directory itself. The `backup_data.sh` script **does not backup the moodle directory**.
 2. **Update**:
-    - change to the moodle directory: `cd /home/<wsl username>/moodle`
+    - change to the moodle directory: `cd /home/<wsl username>/moodle/moodle`
     - fetch the branch: `git fetch origin <branch name>:<branch name>`
     - checkout the branch: `git checkout <branch name>`
 3. **Update the database**:

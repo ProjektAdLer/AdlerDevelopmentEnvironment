@@ -1,6 +1,27 @@
 # Postgresql
-The default `docker-compose.yml` file uses a MariaDB database.
-If you want to use a Postgresql database, you can use the `docker-compose-postgres.yml` file instead.
+The `docker-compose.yml` file uses a MariaDB database.
+
+To use Postgresql instead of MariaDB, you have to switch the database type in the `docker-compose.yml`. You could use something like this:
+```yaml
+services:
+  pgsql_db_moodle:
+    image: postgres:13
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${_DB_MOODLE_USER}
+      POSTGRES_PASSWORD: ${_DB_MOODLE_PW}
+      POSTGRES_DB: ${_DB_MOODLE_NAME}
+    volumes:
+      - psql_db_moodle_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  psql_db_moodle_data:
+```
+
+As phpMyAdmin replacement you can use [Adminer](https://www.adminer.org/) which supports Postgresql.
+
 It is configured as similar as possible to the MariaDB database.
 At the moment there is no way to migrate the data between the two databases.
 Take a backup of the data before switching to Postgresql, so you can restore it later.
