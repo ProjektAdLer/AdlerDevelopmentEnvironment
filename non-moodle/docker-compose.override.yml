@@ -1,4 +1,4 @@
-name: adlertestenvironment
+name: adler_gamescom
 
 services:
   moodle:
@@ -10,23 +10,15 @@ services:
       ADLER_PLAYBOOK_ROLES: "test_users"
 
   backend:
+    environment:
+      ASPNETCORE_ADLER_MOODLEURL: http://${_URL_MOODLE}
+      ASPNETCORE_ADLER_ADLERENGINEURL: http://${_URL_3D}
     ports:
       - '${_PORT_BACKEND}:80'
 
   frontend:
+    environment:
+      API_URL: "http://${_URL_BACKEND}/api"
+      MOODLE_URL: "http://${_URL_MOODLE}"
     ports:
       - '${_PORT_3D}:80'
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    environment:
-      PMA_HOSTS: db_moodle,db_backend
-      PMA_PORT: 3306
-      PMA_USER: root
-      PMA_PASSWORD: ${_DB_ROOT_PW}
-    restart: unless-stopped
-    depends_on:
-      # - db_backend
-      - db_moodle
-    ports:
-      - '8088:80'
