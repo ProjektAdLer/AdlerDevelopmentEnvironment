@@ -194,7 +194,7 @@ xdebug.idekey=phpstorm
 " | sudo tee /etc/php/$PHP_VERSION/cli/conf.d/20-xdebug.ini
 
 # install moodle
-php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/install.php --lang=DE --wwwroot=http://localhost:$MOODLE_PORT --dataroot=$MOODLE_PARENT_DIRECTORY/moodledata --dbtype=mariadb --dbhost=$DB_HOST --dbport=$DB_PORT --dbuser=${_DB_MOODLE_USER} --dbpass=${_DB_MOODLE_PW} --dbname=${_DB_MOODLE_NAME} --fullname=fullname --shortname=shortname --adminuser=${_MOODLE_USER} --adminpass=${_MOODLE_PW} --adminemail=admin@blub.blub --supportemail=admin@blub.blub --non-interactive --agree-license
+php $MOODLE_PARENT_DIRECTORY/moodle/admin/cli/install.php --lang=DE --wwwroot=http://localhost:$MOODLE_PORT --dataroot=$MOODLE_PARENT_DIRECTORY/moodledata --dbtype=mariadb --dbhost=$DB_HOST --dbport=$DB_PORT --dbuser=${_DB_MOODLE_USER} --dbpass=${_DB_MOODLE_PW} --dbname=${_DB_MOODLE_NAME} --fullname=fullname --shortname=shortname --adminuser=${_MOODLE_ADMIN_USER} --adminpass=${_MOODLE_ADMIN_PW} --adminemail=admin@blub.blub --supportemail=admin@blub.blub --non-interactive --agree-license
 
 # moodle config.php
 # remove the require_once line as it has to be at the end of the file
@@ -253,7 +253,7 @@ echo "Run the following commands to setup the test environments:"
 echo php admin/tool/phpunit/cli/init.php
 echo php admin/tool/behat/cli/init.php
 
-echo moodle login data: username: ${_MOODLE_USER} password: ${_MOODLE_PW}
+echo moodle login data: username: ${_MOODLE_ADMIN_USER} password: ${_MOODLE_ADMIN_PW}
 if [ "$SKIP_DOCKER" = false ]; then
     echo db root password: ${_DB_ROOT_PW}
 else
