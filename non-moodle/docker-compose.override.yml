@@ -10,10 +10,16 @@ services:
       ADLER_PLAYBOOK_ROLES: "test_users"
 
   backend:
+    environment:
+      ASPNETCORE_ADLER_MOODLEURL: http://${_URL_MOODLE}
+      ASPNETCORE_ADLER_ADLERENGINEURL: http://${_URL_3D}
     ports:
       - '${_PORT_BACKEND}:80'
 
   frontend:
+    environment:
+      API_URL: "http://${_URL_BACKEND}/api"
+      MOODLE_URL: "http://${_URL_MOODLE}"
     ports:
       - '${_PORT_3D}:80'
 
