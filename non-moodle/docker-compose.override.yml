@@ -5,6 +5,7 @@ services:
     ports:
       - '${_PORT_MOODLE}:8080'
     environment:
+      MOODLE_SITE_NAME: "AdLer LMS"
       DECLARATIVE_SETUP_MANAGER_PASSWORD: ${_USER_MANAGER_PW}
       DECLARATIVE_SETUP_STUDENT_PASSWORD: ${_USER_STUDENT_PW}
       ADLER_PLAYBOOK_ROLES: "test_users"
