@@ -1,10 +1,11 @@
-# AdLer-Stack release: 3.2.0
+# AdLer-Stack release: 3.3.0
 # Do not change this file. Do local changes only in docker-compose.override.yml
 
 services:
   moodle:
     image: ghcr.io/projektadler/adler-moodle:6.5.1-moodle-4.5
     environment:
+      MOODLE_SITE_NAME: "AdLer LMS"
       MOODLE_DATABASE_HOST: db_moodle
       MOODLE_DATABASE_PORT_NUMBER: 3306
       MOODLE_DATABASE_USER: ${_DB_MOODLE_USER}
@@ -25,7 +26,7 @@ services:
     restart: unless-stopped
 
   db_moodle:
-    image: docker.io/bitnami/mariadb:11.4
+    image: docker.io/bitnami/mariadb:latest # bitnami does not provide images with release tags atm
     environment:
       MARIADB_USER: ${_DB_MOODLE_USER}
       MARIADB_PASSWORD: ${_DB_MOODLE_PW}
@@ -38,12 +39,12 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "/opt/bitnami/scripts/mariadb/healthcheck.sh"]
-      start_period: 30s
-      interval: 15s
+      start_period: 60s
+      interval: 10s
       timeout: 5s
 
   db_backend:
-    image: docker.io/bitnami/mariadb:11.4
+    image: docker.io/bitnami/mariadb:latest # bitnami does not provide images with release tags atm
     environment:
       MARIADB_USER: ${_DB_BACKEND_USER}
       MARIADB_PASSWORD: ${_DB_BACKEND_PW}
@@ -56,12 +57,12 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "/opt/bitnami/scripts/mariadb/healthcheck.sh"]
-      start_period: 30s
-      interval: 15s
+      start_period: 60s
+      interval: 10s
       timeout: 5s
 
   backend:
-    image: ghcr.io/projektadler/adlerbackend:2.4.9
+    image: ghcr.io/projektadler/adlerbackend:2.5.0
     environment:
       ASPNETCORE_ENVIRONMENT: "Production"
       ASPNETCORE_DBUSER: ${_DB_BACKEND_USER}
@@ -84,7 +85,7 @@ services:
       - ${_DOMAIN}:host-gateway
 
   frontend:
-    image: ghcr.io/projektadler/2d_3d_adler:2.9.0
+    image: ghcr.io/projektadler/2d_3d_adler:2.10.0
     environment:
       API_URL: "https://${_URL_BACKEND}/api"
       MOODLE_URL: "https://${_URL_MOODLE}"
