@@ -1,4 +1,4 @@
-# AdLer-Stack release: 3.3.0
+# AdLer-Stack release: 4.0.0
 # Do not change this file. Do local changes only in docker-compose.override.yml
 
 services:
@@ -85,7 +85,7 @@ services:
       - ${_DOMAIN}:host-gateway
 
   frontend:
-    image: ghcr.io/projektadler/2d_3d_adler:2.10.0
+    image: ghcr.io/projektadler/2d_3d_adler:2.11.0
     environment:
       API_URL: "https://${_URL_BACKEND}/api"
       MOODLE_URL: "https://${_URL_MOODLE}"
